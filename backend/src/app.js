@@ -2,8 +2,8 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import userRouters from "./routes/user.routes.js"
-import medicineRoutes from"./routes/medicine.routes.jsx"
-import reminderRoutes from "./routes/reminder.routes.jsx"
+import medicineRoutes from"./routes/medicine.routes.js"
+import reminderRoutes from "./routes/reminder.routes.js"
 
 
 const app=express()
