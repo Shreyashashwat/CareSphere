@@ -1,4 +1,5 @@
-import  mongoose ,{Schema} from "mongoose"
+import  mongoose from "mongoose"
+const {Schema}=mongoose
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 
@@ -30,7 +31,7 @@ const userSchema=new Schema({
     },
     gender:{
         type:String,
-        enum:["male","female","others"],
+        enum:["Male","Female","Other"],
         required:true,
     },
      refreshToken:{
@@ -59,7 +60,7 @@ userSchema.methods.generateAcessToken=function (){
         {
             _id:this._id,
             username:this.username,
-            fullName:this.fullName,
+          
             email:this.email
 
         },
