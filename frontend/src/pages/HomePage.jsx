@@ -53,7 +53,7 @@ const HomePage = () => {
       console.log("Registration success:", res.data);
       alert("Registration successful!");
 
-      // Optional: switch to login after register
+      
       handleToggle(true);
     } catch (error) {
       console.error("Register error:", error);

@@ -1,56 +1,137 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import {
+  getMedicines,
+  updateMedicine,
+  deleteMedicine,
+} from "../api";
 
-function MedicineList() {
-  // Internal example data
-  const medicines = [
-    { id: 1, name: "Paracetamol", dosage: "500mg", time: "Morning" },
-    { id: 2, name: "Amoxicillin", dosage: "250mg", time: "Afternoon" },
-    { id: 3, name: "Vitamin D", dosage: "1000 IU", time: "Night" },
-  ];
+const MedicineList = () => {
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Example handler functions (for demo only)
-  const handleEdit = (med) => {
-    alert(`Edit clicked for ${med.name}`);
+  const statusColors = {
+    Taken: "bg-green-100 text-green-800",
+    Missed: "bg-red-100 text-red-800",
+    Pending: "bg-yellow-100 text-yellow-800",
   };
 
-  const handleRemove = (id) => {
-    alert(`Remove clicked for medicine ID: ${id}`);
+  // Fetch all medicines from backend
+  const fetchMedicines = async () => {
+    try {
+      setLoading(true);
+      const { data } = await getMedicines();
+      setMedicines(data?.medicines || data); // depends on backend response
+    } catch (error) {
+      console.error("Error fetching medicines:", error);
+      alert("Failed to fetch medicines. Please check your server connection.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Mark as Taken
+  const markTaken = async (id) => {
+    try {
+      await updateMedicine(id, { status: "Taken" });
+      setMedicines((prev) =>
+        prev.map((m) => (m._id === id ? { ...m, status: "Taken" } : m))
+      );
+    } catch (error) {
+      console.error("Error updating medicine status:", error);
+      alert("Failed to update status.");
+    }
+  };
+
+  // Mark as Missed
+  const markMissed = async (id) => {
+    try {
+      await updateMedicine(id, { status: "Missed" });
+      setMedicines((prev) =>
+        prev.map((m) => (m._id === id ? { ...m, status: "Missed" } : m))
+      );
+    } catch (error) {
+      console.error("Error updating medicine status:", error);
+      alert("Failed to update status.");
+    }
+  };
+
+  // Delete medicine
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this medicine?")) return;
+    try {
+      await deleteMedicine(id);
+      setMedicines((prev) => prev.filter((m) => m._id !== id));
+    } catch (error) {
+      console.error("Error deleting medicine:", error);
+      alert("Failed to delete medicine.");
+    }
+  };
+
+  useEffect(() => {
+    fetchMedicines();
+  }, []);
+
+  if (loading) return <p className="text-center text-gray-500 mt-10">Loading medicines...</p>;
 
   return (
-    <div className="w-full bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Medicine List</h2>
-      <ul className="space-y-3">
-        {medicines.map((med) => (
-          <li
-            key={med.id}
-            className="flex items-center justify-between rounded-lg border p-3 hover:bg-gray-50 transition"
-          >
-            <div>
-              <p className="font-medium text-gray-800">{med.name}</p>
-              <p className="text-sm text-gray-500">
-                {med.dosage} • {med.time}
-              </p>
+    <div className="max-w-4xl mx-auto mt-6 space-y-4">
+      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">
+        💊 Your Medicines
+      </h2>
+
+      {medicines.length === 0 ? (
+        <p className="text-gray-500 text-center">No medicines added yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {medicines.map((m) => (
+            <div
+              key={m._id}
+              className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white rounded-2xl shadow hover:shadow-lg transition duration-300 border border-gray-100"
+            >
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <h3 className="text-lg font-semibold text-indigo-600">{m.name}</h3>
+                <p className="text-gray-600">{m.dosage}</p>
+                <p className="text-gray-500 text-sm">
+                  {m.time} • {m.frequency}
+                </p>
+              </div>
+
+              <div className="mt-3 sm:mt-0">
+                <span
+                  className={`px-3 py-1 rounded-full font-semibold ${
+                    statusColors[m.status] || "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {m.status}
+                </span>
+              </div>
+
+              <div className="mt-3 sm:mt-0 flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={() => markTaken(m._id)}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-full transition duration-200"
+                >
+                  Taken
+                </button>
+                <button
+                  onClick={() => markMissed(m._id)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-full transition duration-200"
+                >
+                  Missed
+                </button>
+                <button
+                  onClick={() => handleDelete(m._id)}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded-full transition duration-200"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEdit(med)}
-                className="text-blue-500 hover:text-blue-700 text-sm font-medium"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleRemove(med.id)}
-                className="text-red-500 hover:text-red-700 text-sm font-medium"
-              >
-                Remove
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default MedicineList;

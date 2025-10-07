@@ -4,13 +4,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev":"nodemon src/index.js"
-
+    "dev": "nodemon src/index.js"
   },
   "author": "shreya",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@huggingface/inference": "^4.11.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
