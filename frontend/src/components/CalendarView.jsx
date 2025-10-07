@@ -5,7 +5,6 @@ import "react-calendar/dist/Calendar.css";
 const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Example: Dates with medicines taken or missed
   const medicineHistory = {
     "2025-10-01": "taken",
     "2025-10-02": "missed",

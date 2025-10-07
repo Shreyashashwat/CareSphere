@@ -1,58 +1,49 @@
 import React, { useState } from "react";
-import { addMedicine } from "../api"; // backend API function
+import { addMedicine } from "../api";
 
 const MedicineForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     medicineName: "",
     dosage: "",
     frequency: "daily",
-    time: [""], // multiple times possible
+    time: [""],
     startDate: "",
     endDate: "",
   });
-
   const [loading, setLoading] = useState(false);
 
-  // handle field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // handle time input changes
   const handleTimeChange = (index, value) => {
     const newTimes = [...formData.time];
     newTimes[index] = value;
     setFormData({ ...formData, time: newTimes });
   };
 
-  // add another time input
   const addTimeField = () => {
     setFormData({ ...formData, time: [...formData.time, ""] });
   };
 
-  // remove a time input
   const removeTimeField = (index) => {
     const newTimes = formData.time.filter((_, i) => i !== index);
     setFormData({ ...formData, time: newTimes });
   };
 
-  // handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user._id) {
-        alert("❌ User not found. Please log in again.");
+        alert("User not found. Please log in again.");
         return;
       }
-
       const data = { ...formData, userId: user._id };
       await addMedicine(data);
-      alert("✅ Medicine added successfully!");
-
-      // reset form
+      alert("Medicine added successfully!");
       setFormData({
         medicineName: "",
         dosage: "",
@@ -61,11 +52,10 @@ const MedicineForm = ({ onSuccess }) => {
         startDate: "",
         endDate: "",
       });
-
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to add medicine");
+      alert("Failed to add medicine");
     } finally {
       setLoading(false);
     }
@@ -180,4 +170,4 @@ const MedicineForm = ({ onSuccess }) => {
   );
 };
 
-export default MedicineForm; 
+export default MedicineForm;
