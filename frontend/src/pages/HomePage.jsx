@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../api";
+
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,12 @@ const HomePage = () => {
     age: 0,
     gender: "",
   });
+    useEffect(() => {
+    fetch("http://localhost:8000/test",)
+      .then((res) => res.text())
+      .then(console.log)
+      .catch(console.error);
+    }, []);
 
   const clearForms = () => {
     setLoginData({ email: "", password: "" });
