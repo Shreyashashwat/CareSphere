@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getDashboardStats=asyncHandler(async(req,res)=>{
-    const userId=req.userId;
+    const userId=req.user;
     if(!userId) throw new ApiError(400,"User Id missing");
     const reminders=await Reminder.find({medicationId:{$exists:true},userId});
     let takenCount=0;
