@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { addMedicine } from "../api";
+import { addMedicine, addReminder } from "../api";
 
 const MedicineForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -35,15 +35,51 @@ const MedicineForm = ({ onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user._id) {
         alert("User not found. Please log in again.");
         return;
       }
-      const data = { ...formData, userId: user._id };
-      await addMedicine(data);
-      alert("Medicine added successfully!");
+
+      // 1️⃣ Add medicine
+      const medicineData = { ...formData, userId: user._id };
+      const res = await addMedicine(medicineData);
+      const medicineId = res.data._id || res.data.data._id;
+
+      // 2️⃣ Add reminders for each time
+      for (const t of formData.time) {
+        const start = new Date(formData.startDate);
+        const end = formData.endDate ? new Date(formData.endDate) : start;
+
+        const step = formData.frequency === "daily" ? 1 : formData.frequency === "weekly" ? 7 : 0;
+
+        for (let d = new Date(start); step > 0 && d <= end; d.setDate(d.getDate() + step)) {
+          const [hours, minutes] = t.split(":");
+          const reminderTime = new Date(d);
+          reminderTime.setHours(hours, minutes, 0, 0);
+
+          await addReminder({
+            medicationId: medicineId,
+            time: reminderTime,
+          });
+        }
+
+        // For "as needed", just create one reminder per time
+        if (formData.frequency === "as needed") {
+          const [hours, minutes] = t.split(":");
+          const reminderTime = new Date(start);
+          reminderTime.setHours(hours, minutes, 0, 0);
+
+          await addReminder({
+            medicationId: medicineId,
+            time: reminderTime,
+          });
+        }
+      }
+
+      alert("Medicine and reminders added successfully!");
       setFormData({
         medicineName: "",
         dosage: "",
@@ -52,10 +88,11 @@ const MedicineForm = ({ onSuccess }) => {
         startDate: "",
         endDate: "",
       });
+
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error(err);
-      alert("Failed to add medicine");
+      alert("Failed to add medicine or reminders");
     } finally {
       setLoading(false);
     }
@@ -164,7 +201,7 @@ const MedicineForm = ({ onSuccess }) => {
           loading ? "opacity-60 cursor-not-allowed" : ""
         }`}
       >
-        {loading ? "Saving..." : "Save Medicine"}
+        {loading ? "Saving..." : "Save Medicine & Reminders"}
       </button>
     </form>
   );

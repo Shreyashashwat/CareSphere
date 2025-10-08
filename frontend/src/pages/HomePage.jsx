@@ -14,12 +14,7 @@ const HomePage = () => {
     age: 0,
     gender: "",
   });
-    useEffect(() => {
-    fetch("http://localhost:8000/test",)
-      .then((res) => res.text())
-      .then(console.log)
-      .catch(console.error);
-    }, []);
+   
 
   const clearForms = () => {
     setLoginData({ email: "", password: "" });
@@ -37,21 +32,28 @@ const HomePage = () => {
   const handleRegisterChange = (e) =>
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
 
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await loginUser(loginData);
-      console.log("Login success:", res.data);
-      localStorage.setItem("user", JSON.stringify(res.data));
+const handleLoginSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await loginUser(loginData);
+    console.log("Login success:", res.data);
 
-      alert("Login successful!");
+  
+    const { user, token } = res.data.data;
 
-      navigate("/patient");
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Login failed! Check credentials or server connection.");
-    }
-  };
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ _id: user._id, username: user.username,token })
+    );
+
+    alert("Login successful!");
+    navigate("/patient");
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Login failed! Check credentials or server connection.");
+  }
+};
+
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
