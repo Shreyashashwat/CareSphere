@@ -24,13 +24,15 @@ const Patient = () => {
 
 
   const fetchMedicines = async () => {
-    try {
-      const { data } = await getMedicines();
-      setMedicines(data.medicines || []);
-    } catch (err) {
-      console.error("Failed to fetch medicines:", err);
-    }
-  };
+  try {
+    const res = await getMedicines();       // res.data is ApiResponse
+    const medicinesArray = Array.isArray(res.data.data) ? res.data.data : [];
+    setMedicines(medicinesArray);
+  } catch (err) {
+    console.error("Failed to fetch medicines:", err);
+  }
+};
+
 
 
   const fetchHistoryData = async () => {
@@ -70,6 +72,7 @@ const Patient = () => {
   const handleMedicineUpdate = () => {
     fetchMedicines();
     fetchHistoryData();
+     
   };
 
   const handleLogout = () => {
