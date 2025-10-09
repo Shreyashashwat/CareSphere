@@ -46,7 +46,7 @@ const MedicineForm = ({ onSuccess }) => {
       // 1️⃣ Add medicine
       const medicineData = { ...formData, userId: user._id };
       const res = await addMedicine(medicineData);
-      const medicineId = res.data._id || res.data.data._id;
+      const medicineId =res.data.data._id;
 
       // 2️⃣ Add reminders for each time
       for (const t of formData.time) {
@@ -61,8 +61,8 @@ const MedicineForm = ({ onSuccess }) => {
           reminderTime.setHours(hours, minutes, 0, 0);
 
           await addReminder({
-            medicationId: medicineId,
-            time: reminderTime,
+            medicineId,
+            time: reminderTime.toISOString(),
           });
         }
 
@@ -73,8 +73,8 @@ const MedicineForm = ({ onSuccess }) => {
           reminderTime.setHours(hours, minutes, 0, 0);
 
           await addReminder({
-            medicationId: medicineId,
-            time: reminderTime,
+            medicineId,
+            time: reminderTime.toISOString(),
           });
         }
       }
