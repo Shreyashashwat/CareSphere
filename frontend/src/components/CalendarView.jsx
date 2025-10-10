@@ -5,39 +5,55 @@ import "react-calendar/dist/Calendar.css";
 const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const medicineHistory = {
-    "2025-10-01": "taken",
-    "2025-10-02": "missed",
-    "2025-10-03": "upcoming",
-  };
+  useEffect(() => {
+    const data = {};
+    reminders.forEach((r) => {
+      if (!r.time || !r.status) return;
+      const dateKey = new Date(r.time).toISOString().split("T")[0];
+      const status = r.status.toLowerCase(); // backend status is lowercase
+
+      // Prioritize: missed > pending > taken
+      if (!data[dateKey]) {
+        data[dateKey] = status;
+      } else if (status === "missed") {
+        data[dateKey] = "missed";
+      } else if (status === "pending" && data[dateKey] !== "missed") {
+        data[dateKey] = "upcoming";
+      } else if (status === "taken" && !["missed", "upcoming"].includes(data[dateKey])) {
+        data[dateKey] = "taken";
+      }
+    });
+    setCalendarData(data);
+  }, [reminders]);
 
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
       const key = date.toISOString().split("T")[0];
-      if (medicineHistory[key] === "taken") return "bg-green-200 rounded-full";
-      if (medicineHistory[key] === "missed") return "bg-red-200 rounded-full";
-      if (medicineHistory[key] === "upcoming") return "bg-blue-200 rounded-full";
+      const status = calendarData[key];
+      if (status === "taken") return "bg-green-200 rounded-full";
+      if (status === "missed") return "bg-red-200 rounded-full";
+      if (status === "upcoming") return "bg-pink-200 rounded-full"; // match legend
     }
     return "";
   };
 
 return (
     <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-md max-w-md mx-auto">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Medicine Calendar</h2>
-        <Calendar
-            onChange={setSelectedDate}
-            value={selectedDate}
-            tileClassName={tileClassName}
-            className="react-calendar w-full"
-        />
-        <p className="mt-4 text-gray-700 font-medium">
-            Selected Date: <span className="font-mono">{selectedDate.toDateString()}</span>
-        </p>
-        <div className="mt-2 text-sm text-gray-500">
-            <span className="inline-block w-3 h-3 bg-green-200 rounded-full mr-1 align-middle"></span> Taken
-            <span className="inline-block w-3 h-3 bg-red-200 rounded-full mx-2 align-middle"></span> Missed
-            <span className="inline-block w-3 h-3 bg-blue-200 rounded-full mx-2 align-middle"></span> Upcoming
-        </div>
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">Medicine Calendar</h2>
+      <Calendar
+        onChange={setSelectedDate}
+        value={selectedDate}
+        tileClassName={tileClassName}
+        className="react-calendar w-full"
+      />
+      <p className="mt-4 text-gray-700 font-medium">
+        Selected Date: <span className="font-mono">{selectedDate.toDateString()}</span>
+      </p>
+      <div className="mt-2 text-sm text-gray-500">
+        <span className="inline-block w-3 h-3 bg-green-200 rounded-full mr-1 align-middle"></span> Taken
+        <span className="inline-block w-3 h-3 bg-red-200 rounded-full mx-2 align-middle"></span> Missed
+        <span className="inline-block w-3 h-3 bg-pink-200 rounded-full mx-2 align-middle"></span> Upcoming
+      </div>
     </div>
 );
 };
