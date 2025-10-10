@@ -6,19 +6,21 @@ const CalendarView = ({ reminders = [] }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState({});
 
-  // Transform reminders into a date-based object for calendar
   useEffect(() => {
     const data = {};
     reminders.forEach((r) => {
+      if (!r.time || !r.status) return;
       const dateKey = new Date(r.time).toISOString().split("T")[0];
-      // Prioritize status: Missed > Upcoming > Taken
+      const status = r.status.toLowerCase(); // backend status is lowercase
+
+      // Prioritize: missed > pending > taken
       if (!data[dateKey]) {
-        data[dateKey] = r.status;
-      } else if (r.status === "Missed") {
+        data[dateKey] = status;
+      } else if (status === "missed") {
         data[dateKey] = "missed";
-      } else if (r.status === "Pending" && data[dateKey] !== "missed") {
+      } else if (status === "pending" && data[dateKey] !== "missed") {
         data[dateKey] = "upcoming";
-      } else if (r.status === "Taken" && !["missed", "upcoming"].includes(data[dateKey])) {
+      } else if (status === "taken" && !["missed", "upcoming"].includes(data[dateKey])) {
         data[dateKey] = "taken";
       }
     });
@@ -28,9 +30,10 @@ const CalendarView = ({ reminders = [] }) => {
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
       const key = date.toISOString().split("T")[0];
-      if (calendarData[key] === "taken") return "bg-green-200 rounded-full";
-      if (calendarData[key] === "missed") return "bg-red-200 rounded-full";
-      if (calendarData[key] === "upcoming") return "bg-blue-200 rounded-full";
+      const status = calendarData[key];
+      if (status === "taken") return "bg-green-200 rounded-full";
+      if (status === "missed") return "bg-red-200 rounded-full";
+      if (status === "upcoming") return "bg-pink-200 rounded-full"; // match legend
     }
     return "";
   };
@@ -50,7 +53,7 @@ const CalendarView = ({ reminders = [] }) => {
       <div className="mt-2 text-sm text-gray-500">
         <span className="inline-block w-3 h-3 bg-green-200 rounded-full mr-1 align-middle"></span> Taken
         <span className="inline-block w-3 h-3 bg-red-200 rounded-full mx-2 align-middle"></span> Missed
-        <span className="inline-block w-3 h-3 bg-blue-200 rounded-full mx-2 align-middle"></span> Upcoming
+        <span className="inline-block w-3 h-3 bg-pink-200 rounded-full mx-2 align-middle"></span> Upcoming
       </div>
     </div>
   );
