@@ -60,7 +60,7 @@ const reminders = await Reminder.find({ userId })
 
 const deleteReminder = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.userId;
+  const userId = req.user;
 
   const reminder = await Reminder.findOne({ _id: id, userId });
   if (!reminder) throw new ApiError(404, "Reminder not found");
@@ -91,7 +91,9 @@ reminder.status="taken";
   reminder.userResponseTime = new Date();
   await reminder.save();
  
-  
+    medicine.status = "taken";
+     medicine.takenCount += 1;
+  await medicine.save();
   return res
     .status(200)
     .json(new ApiResponse(200, reminder, "Medicine marked as taken"));
@@ -113,7 +115,9 @@ reminder.status="missed";
   reminder.userResponseTime = new Date();
   await reminder.save();
  
-  
+    medicine.status = "missed";
+     medicine.missedCount += 1;
+  await medicine.save();
   return res
     .status(200)
     .json(new ApiResponse(200, reminder, "Medicine marked as taken"));

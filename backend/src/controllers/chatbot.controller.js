@@ -1,27 +1,43 @@
 import 'dotenv/config';
-const { InferenceClient } = await import("@huggingface/inference");
-console.log("OK");
-import { getHistory } from "./history.controller.js";
-import {verifyJwt} from "../middleware/auth.middleware.js";
+import { InferenceClient } from "@huggingface/inference";
+import { Medicine } from "../model/medicine.model.js";
+
+const fetchHistory = async (userId) => {
+  const medicines = await Medicine.find({ userId }).populate("statusHistory");
+
+  const history = medicines.flatMap((med) =>
+    med.statusHistory.map((status) => ({
+      medicineName: med.medicineName,
+      dosage: med.dosage,
+      frequency: med.frequency,
+      time: status.time,
+      status: status.status,
+      userResponseTime: status.userResponseTime,
+    }))
+  );
+
+
+  history.sort((a, b) => new Date(b.time) - new Date(a.time));
+  console.log(history);
+  return history;
+};
 
 const hfApiToken = process.env.HUGGINGFACEHUB_API_TOKEN;
-if (!hfApiToken) {
-  throw new Error("HUGGINGFACEHUB_API_TOKEN is not defined");
-}
+if (!hfApiToken) throw new Error("HUGGINGFACEHUB_API_TOKEN is not defined");
 const client = new InferenceClient(hfApiToken);
 
 export const chatbot = async (req, res) => {
   try {
-    const { user_id, message } = req.body;
+    const { userId, message } = req.body;
 
-    const user = await verifyJwt(req);
-    if (!user || user.id !== user_id) {
+    // Use req.user set by verifyJwt middleware
+    if (req.user !== userId) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
-    const userData = await getHistory(user_id);
-    const contextString = userData
-      ? `Schedule: ${JSON.stringify(userData.schedule)}; Last taken: ${userData.lastTaken}`
+    const userData = await fetchHistory(userId);
+    const contextString = userData.length
+      ? `Medicine history: ${JSON.stringify(userData)}`
       : "No medication data found.";
 
     const messages = [
@@ -37,10 +53,10 @@ export const chatbot = async (req, res) => {
     });
 
     const reply = response.choices?.[0]?.message?.content ?? "";
-
     return res.json({ reply });
+
   } catch (err) {
-    console.error("Error in /chat:", err);
+    console.error("Error in /chatbot:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
