@@ -31,9 +31,10 @@ export const chatbot = async (req, res) => {
     const { userId, message } = req.body;
 
     // Use req.user set by verifyJwt middleware
-    if (req.user !== userId) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+    if (req.user.toString() !== userId.toString()) {
+  return res.status(403).json({ error: "Unauthorized" });
+}
+
 
     const userData = await fetchHistory(userId);
     const contextString = userData.length
