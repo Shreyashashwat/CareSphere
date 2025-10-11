@@ -88,6 +88,7 @@ Advanced AI features enhance user engagement by learning patterns and providing 
 - npm or yarn
 - MongoDB running locally or via Atlas
 - Firebase project setup for notifications
+- HUGGING FACE token generation for chatbot
 
 ### Steps
 ```bash
@@ -106,6 +107,12 @@ JWT_SECRET=your_secret_key
 FIREBASE_API_KEY=your_firebase_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
+HUGGINGFACEHUB_API_TOKEN="your token"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=project id
+FIREBASE_CLIENT_EMAIL=your client email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour private key-----\n",
+GOOGLE_APPLICATION_CREDENTIALS="C:\path\to\your\service-account-file.json"
+
 
 # Start the development server
 npm run dev
