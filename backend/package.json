@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-     "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js"
   },
   "author": "shreya",
   "license": "ISC",
@@ -16,10 +16,14 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
+    "firebase": "^12.4.0",
+    "firebase-admin": "^13.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.9"
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^7.0.9",
+    "np": "^10.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
