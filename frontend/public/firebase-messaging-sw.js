@@ -1,31 +1,27 @@
-import { clientsClaim, skipWaiting } from 'workbox-core';
-import { precacheAndRoute } from 'workbox-precaching';
-import { initializeApp } from 'firebase/app';
-import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
+// public/firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-skipWaiting();
-clientsClaim();
-precacheAndRoute(self.__WB_MANIFEST);
+firebase.initializeApp({
+  apiKey: "AIzaSyC7POku1ofofXT7jwo1L3Aq0O-0dD-uMUk",
+  authDomain: "caresphere-c870c.firebaseapp.com",
+  projectId: "caresphere-c870c",
+  storageBucket: "caresphere-c870c.firebasestorage.app",
+  messagingSenderId: "785418315133",
+  appId: "1:785418315133:web:5238eb79d972d84cea9814",
+  measurementId: "G-BR5CS7G9WM"
+});
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAEWnPNtu9gQt7C7FkkPRKGdIVgPm7adas",
-  authDomain: "caresphere-474703.firebaseapp.com",
-  projectId: "caresphere-474703",
-  storageBucket: "caresphere-474703.firebasestorage.app",
-  messagingSenderId: "748085462199",
-  appId: "1:748085462199:web:9a5ad7823e59000c2bf932"
-};
+const messaging = firebase.messaging();
 
-initializeApp(firebaseConfig);
-const messaging = getMessaging();
+messaging.onBackgroundMessage(function(payload) {
+  console.log('[firebase-messaging-sw.js] Background message', payload);
 
-// handle background messages
-onBackgroundMessage(messaging, (payload) => {
-  console.log("Received background message", payload);
+  const notificationTitle = payload.notification?.title || 'CareSphere';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: '/logo192.png'
+  };
 
-  const { title, body } = payload.notification;
-  self.registration.showNotification(title, {
-    body,
-    icon: "/Asset 2.png",
-  });
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
