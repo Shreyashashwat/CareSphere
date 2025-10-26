@@ -3,10 +3,18 @@ import admin from "./firebaseAdmin.js";
 import { Medicine } from "../model/medicine.model.js";
 
 /**
- * Send FCM notification
+ * Send FCM data-only notification
  */
-async function sendNotification(token, title, body) {
-  const message = { notification: { title, body }, token };
+async function sendNotification(token, medicine) {
+  const message = {
+    data: {
+      title: `💊 Medicine Reminder`,
+      body: `Time to take your medicine: ${medicine.medicineName} (${medicine.dosage})`,
+      medicineId: medicine._id.toString(),
+    },
+    token,
+  };
+
   try {
     await admin.messaging().send(message);
     console.log(`✅ Notification sent to token: ${token}`);
@@ -19,7 +27,6 @@ async function sendNotification(token, title, body) {
  * Cron job for medicine reminders
  */
 const sendnoti = () => {
-  // Run every minute
   cron.schedule("* * * * *", async () => {
     console.log("🕒 Cron triggered:", new Date().toLocaleString());
 
@@ -29,51 +36,34 @@ const sendnoti = () => {
 
       for (const med of medicines) {
         const user = med.userId;
-         console.log(`Medicine: ${med.medicineName}, Times:`, med.time);
-        if (!user || !user.fcmToken) {
-    console.log("Skipping, user missing or no fcmToken", user);
-    continue;
-}
-        console.log("yes")
- 
+        if (!user || !user.fcmToken) continue;
+
         for (const t of med.time) {
-           console.log(`Raw time string: "${t}"`);
           const [hours, minutes] = t.split(":").map(Number);
           const medTime = new Date(now);
           medTime.setHours(hours, minutes, 0, 0);
-        
-          const diff = Math.abs(medTime.getTime() - now.getTime());
-            console.log(
-  `Now: ${now.toTimeString()}, MedTime: ${medTime.toTimeString()}, Diff(ms): ${diff}`
-);
 
-          // Only send if within 2 minutes window
+          const diff = Math.abs(medTime.getTime() - now.getTime());
+
+          if (med.snoozedUntil && med.snoozedUntil > now) continue;
+
           if (diff < 120000) {
-            // Check if already notified in last 24 hours
             if (med.lastNotified) {
               const last = new Date(med.lastNotified);
               if (
                 last.toDateString() === now.toDateString() &&
                 Math.abs(last.getTime() - medTime.getTime()) < 60000
-              ) {
-                console.log(
-                  `⚠️ Already notified for ${med.medicineName} at ${t}`
-                );
+              )
                 continue;
-              }
             }
 
             console.log(
               `💊 Sending notification for ${med.medicineName} to user ${user._id}`
             );
+            
 
-            await sendNotification(
-              user.fcmToken,
-              "💊 Medicine Reminder",
-              `Time to take your medicine: ${med.medicineName} (${med.dosage})`
-            );
+            await sendNotification(user.fcmToken, med);
 
-            // Save lastNotified time
             med.lastNotified = now;
             await med.save();
           }

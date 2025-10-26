@@ -1,5 +1,4 @@
-import mongoose ,{Schema}from 'mongoose';
-
+import mongoose from 'mongoose';
 
 const medicineSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -11,13 +10,15 @@ const medicineSchema = new mongoose.Schema({
   endDate: { type: Date },
   repeat: { type: String, default: "daily" },
   nextReminder: { type: Date },
-  
+   lastNotified:{type:Date},
+  // Track snooze time for notifications
+  snoozedUntil: { type: Date, default: null },
+
   statusHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Reminder" }],
   createdAt: { type: Date, default: Date.now },
   takenCount: { type: Number, default: 0 },
-missedCount: { type: Number, default: 0 },
-
+  missedCount: { type: Number, default: 0 },
+   googleEventIds: [String],
 });
-export const Medicine=mongoose.model("Medicine",medicineSchema)
 
-
+export const Medicine = mongoose.model("Medicine", medicineSchema);
