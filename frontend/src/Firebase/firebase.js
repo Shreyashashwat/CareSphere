@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging } from "firebase/messaging";
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyAEWnPNtu9gQt7C7FkkPRKGdIVgPm7adas",
   authDomain: "caresphere-474703.firebaseapp.com",
@@ -12,6 +13,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+
+// Google provider for sign-in
+
 const messaging = getMessaging(app);
 
-export { messaging };
+export { messaging};
