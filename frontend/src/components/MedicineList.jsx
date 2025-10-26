@@ -9,6 +9,35 @@ const MedicineList = ({ medicines, reminders = [], onUpdate, onEdit }) => {
     const interval = setInterval(() => setTick((t) => t + 1), 30000); // Re-render every 30s
     return () => clearInterval(interval);
   }, []);
+  useEffect(() => {
+  const checkMissedReminders = async () => {
+    const now = new Date();
+
+    const overdueReminders = reminders.filter((r) => {
+      if (!r?.medicineId || !r.time) return false;
+
+      const reminderTime = new Date(r.time);
+      const status = r.status?.toLowerCase();
+      const oneHourLater = new Date(reminderTime.getTime() + 60 * 60000);
+
+      return status === "pending" && oneHourLater <= now;
+    });
+
+    for (const r of overdueReminders) {
+      try {
+        await markasMissed(r._id);
+        console.log("Auto-marked as missed:", r._id);
+      } catch (err) {
+        console.error("Auto-miss failed", err);
+      }
+    }
+
+    if (overdueReminders.length > 0) onUpdate();
+  };
+
+  checkMissedReminders();
+}, [tick, reminders, onUpdate]);
+
 
   const getNextMedicineId = () => {
     const now = new Date();
