@@ -13,6 +13,13 @@ import Messaging from "./Firebase/Messaging.jsx";
 import { onMessage } from "firebase/messaging";
 import { messaging } from "./Firebase/firebase";
 
+function HeaderWrapper() {
+  const location = useLocation();
+  // Hide global header on specific paths
+  if (location.pathname === "/caregiver-dashboard") return null;
+  return <Header />;
+}
+
 function ChatbotWrapper() {
   const location = useLocation();
   const { user, token } = useContext(UserContext);
@@ -54,10 +61,11 @@ function App() {
   return (
     <UserProvider>
       <Router>
-        <Header />
+        <HeaderWrapper />
         <Messaging /> {/* Requests notification permission */}
         <Routes>
           <Route path="/" element={<Home />} />
+
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/patient" element={<Patient />} />
