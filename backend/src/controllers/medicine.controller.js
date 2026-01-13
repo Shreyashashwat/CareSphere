@@ -6,16 +6,16 @@ import { Reminder } from "../model/reminderstatus.js";
 
 
 const getMedicines = asyncHandler(async (req, res) => {
-  const userId = req.user;
+  const userId = req.user.id;
   if (!userId) throw new ApiError(400, "User ID missing");
 
   const medicines = await Medicine.find({ userId });
 
-  return res.status(200).json(new ApiResponse(200, medicines , "Medicines fetched successfully"));
+  return res.status(200).json(new ApiResponse(200, medicines, "Medicines fetched successfully"));
 });
 
 const addMedicine = asyncHandler(async (req, res) => {
-  const userId = req.user; 
+  const userId = req.user.id;
   if (!userId) throw new ApiError(400, "Invalid user");
 
   const { medicineName, dosage, frequency, time, startDate, endDate, repeat } = req.body;
@@ -37,10 +37,10 @@ const addMedicine = asyncHandler(async (req, res) => {
 
 const updateMedicine = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user;
+  const userId = req.user.id;
   if (!userId) throw new ApiError(400, "User ID missing");
 
-  const updateData = req.body; 
+  const updateData = req.body;
 
   const medicine = await Medicine.findOneAndUpdate(
     { _id: id, userId },
