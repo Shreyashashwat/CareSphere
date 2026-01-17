@@ -36,6 +36,34 @@ const userSchema = new Schema(
         },
 
 
+<<<<<<< HEAD
+=======
+    },
+    age:{
+        type:Number,
+        required:true,
+        min:0,
+        max:120,
+    },
+    gender:{
+        type:String,
+        enum:["Male","Female","Other"],
+        required:true,
+    },
+    fcmToken: {  
+      type: String,
+      default: null,
+    },
+    googleTokens: {
+    access_token: { type: String },
+    refresh_token: { type: String }, // optional, if you ever want offline access
+    expiry_date: { type: Number }
+},
+hasGoogleAccount: {
+  type: Boolean,
+  default: false,
+},
+>>>>>>> upstream/google-calender
 
         fcmToken: {
             type: String,

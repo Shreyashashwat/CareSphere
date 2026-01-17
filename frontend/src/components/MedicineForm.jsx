@@ -10,8 +10,11 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     startDate: "",
     endDate: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!!medicine?._id);
+  const [medicineValid, setMedicineValid] = useState(true);
+  const [checkingMedicine, setCheckingMedicine] = useState(false);
 
   // Fill form if editing
   useEffect(() => {
@@ -32,9 +35,40 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     }
   }, [medicine]);
 
+  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "medicineName") {
+      validateMedicineName(value);
+    }
+  };
+
+  // Validate medicine via backend
+  let timeout;
+  const validateMedicineName = (name) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(async () => {
+      if (!name) {
+        setMedicineValid(true);
+        return;
+      }
+      setCheckingMedicine(true);
+      try {
+        const res = await fetch(
+          `http://localhost:8000/api/v1/medicine/validate-medicine/${encodeURIComponent(
+            name
+          )}`
+        );
+        const data = await res.json();
+        setMedicineValid(data.valid);
+      } catch (err) {
+        setMedicineValid(false);
+      } finally {
+        setCheckingMedicine(false);
+      }
+    }, 500);
   };
 
   const handleTimeChange = (index, value) => {
@@ -53,6 +87,11 @@ const MedicineForm = ({ onSuccess, medicine }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!medicineValid) {
+      alert("Please enter a valid medicine name.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,7 +102,11 @@ const MedicineForm = ({ onSuccess, medicine }) => {
         return;
       }
 
-      const medicineData = { ...formData, userId: user._id };
+      const medicineData = {
+        ...formData,
+        userId: user._id,
+      };
+
       let medicineId;
 
       if (isEditing) {
@@ -75,7 +118,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
         medicineId = res.data.data._id;
         alert("Medicine added successfully!");
 
-        // Add reminders only for new medicine
+        // Add reminders for new medicine
         for (const t of formData.time) {
           const start = new Date(formData.startDate);
           const end = formData.endDate ? new Date(formData.endDate) : start;
@@ -87,24 +130,35 @@ const MedicineForm = ({ onSuccess, medicine }) => {
               ? 7
               : 0;
 
-          for (let d = new Date(start); step > 0 && d <= end; d.setDate(d.getDate() + step)) {
+          for (
+            let d = new Date(start);
+            step > 0 && d <= end;
+            d.setDate(d.getDate() + step)
+          ) {
             const [hours, minutes] = t.split(":");
             const reminderTime = new Date(d);
             reminderTime.setHours(hours, minutes, 0, 0);
 
-            await addReminder({ medicineId, time: reminderTime.toISOString() });
+            await addReminder({
+              medicineId,
+              time: reminderTime.toISOString(),
+            });
           }
 
           if (formData.frequency === "as needed") {
             const [hours, minutes] = t.split(":");
             const reminderTime = new Date(start);
             reminderTime.setHours(hours, minutes, 0, 0);
-            await addReminder({ medicineId, time: reminderTime.toISOString() });
+            await addReminder({
+              medicineId,
+              time: reminderTime.toISOString(),
+              status: "pending",
+            });
           }
         }
       }
 
-      // Reset form and editing mode
+      // Reset form
       setFormData({
         medicineName: "",
         dosage: "",
@@ -133,15 +187,25 @@ const MedicineForm = ({ onSuccess, medicine }) => {
         {isEditing ? "Update Medicine" : "Add Medicine"}
       </h2>
 
-      <input
-        type="text"
-        name="medicineName"
-        placeholder="Medicine Name"
-        value={formData.medicineName}
-        onChange={handleChange}
-        className="w-full border rounded-lg p-2 focus:ring focus:ring-blue-300"
-        required
-      />
+      <div>
+        <input
+          type="text"
+          name="medicineName"
+          placeholder="Medicine Name"
+          value={formData.medicineName}
+          onChange={handleChange}
+          className={`w-full border rounded-lg p-2 focus:ring focus:ring-blue-300 ${
+            medicineValid ? "" : "border-red-500"
+          }`}
+          required
+        />
+        {!medicineValid && (
+          <p className="text-red-500 text-sm mt-1">Medicine not recognized</p>
+        )}
+        {checkingMedicine && (
+          <p className="text-gray-500 text-sm mt-1">Checking medicine...</p>
+        )}
+      </div>
 
       <input
         type="text"
@@ -222,7 +286,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !medicineValid}
         className={`w-full bg-blue-500 text-white rounded-lg py-2 hover:bg-blue-600 transition ${
           loading ? "opacity-60 cursor-not-allowed" : ""
         }`}
