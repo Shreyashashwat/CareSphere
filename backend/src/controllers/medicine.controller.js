@@ -60,12 +60,8 @@ await medicine.save();
 
 const updateMedicine = asyncHandler(async (req, res) => {
   const { id } = req.params;
-<<<<<<< HEAD
-  const userId = req.user.id;
-=======
   const userId = req.user;
   console.log(`userID:${req.user}`);
->>>>>>> upstream/google-calender
   if (!userId) throw new ApiError(400, "User ID missing");
 
   const updateData = req.body;
