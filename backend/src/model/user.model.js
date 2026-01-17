@@ -23,22 +23,20 @@ const userSchema = new Schema(
             type: String,
             required: [true, "Password is required"],
         },
-        age: {
-            type: Number,
-            required: true,
-            min: 0,
-            max: 120,
-        },
-        gender: {
-            type: String,
-            enum: ["Male", "Female", "Other"],
-            required: true,
-        },
+    //     age: {
+    //         type: Number,
+    //         required: true,
+    //         min: 0,
+    //         max: 120,
+    //     },
+    //     gender: {
+    //         type: String,
+    //         enum: ["Male", "Female", "Other"],
+    //         required: true,
+    //     // },
 
 
-<<<<<<< HEAD
-=======
-    },
+    // },
     age:{
         type:Number,
         required:true,
@@ -63,13 +61,12 @@ hasGoogleAccount: {
   type: Boolean,
   default: false,
 },
->>>>>>> upstream/google-calender
-
-        fcmToken: {
-            type: String,
-            default: null,
-        },
     },
+    //     fcmToken: {
+    //         type: String,
+    //         default: null,
+    //     },
+    // },
     {
         timestamps: true,
     }
