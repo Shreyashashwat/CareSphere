@@ -38,5 +38,7 @@ export const markasMissed = (reminderId) =>
   API.patch(`/reminder/missed/${reminderId}`);
 export const fetchHistory = () => API.get(`/users/history`);
 export const getDashboardStats=()=>API.get("/users/dashboard");
+export const connectDoctor=()=>API.post("users/connect-doctor");
+export const getDoctorDashboardData=()=>API.get("users/doctor/dashboard");
 
 export default API;
