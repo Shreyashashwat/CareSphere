@@ -59,7 +59,7 @@ export const getWebsiteGoogleEvents = async (req, res) => {
 
     res.json({ events });
   } catch (error) {
-    console.error("❌ Failed to fetch website events:", error.message);
+    console.error("Failed to fetch website events:", error.message);
     res.status(500).json({ message: "Failed to fetch website events" });
   }
 };
