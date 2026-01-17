@@ -34,6 +34,17 @@ const userSchema=new Schema({
         enum:["Male","Female","Other"],
         required:true,
     },
+    doctorCode: {
+      type: String,
+      required: true, 
+      unique: true, 
+      uppercase: true, 
+      trim: true,
+    },
+     role:{
+        type:String,
+        default:"user",
+    },
 
 },{
     timestamps:true,
