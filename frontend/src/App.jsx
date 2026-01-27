@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 import Home from "./pages/HomePage";
 import Patient from "./pages/patient";
+import DoctorDashboard from "./pages/DoctorDashboard";
 import Header from "./components/Header";
 import ChatWidget from "./pages/Chatbot.jsx";
 import About from "./pages/About";
@@ -74,6 +75,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/patient" element={<Patient />} />
+          <Route path="/doctor" element={<DoctorDashboard />} />
         </Routes>
         <ChatbotWrapper /> {/* Foreground notifications with Snooze */}
         <ToastContainer position="top-right" />

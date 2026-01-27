@@ -6,7 +6,7 @@ import MedicineForm from "../components/MedicineForm";
 import HistoryTable from "../components/HistoryTable";
 import CalendarView from "../components/CalendarView";
 import DashboardChart from "../components/DashboardChart";
-import { getMedicines, fetchHistory, getReminders, deleteMedicine } from "../api";
+import { getMedicines, fetchHistory, getReminders, deleteMedicine, getAllDoctors, sendDoctorRequest, getPatientRequests } from "../api";
 
 const Patient = () => {
   const [selectedMedicine, setSelectedMedicine] = useState(null);
@@ -15,6 +15,9 @@ const Patient = () => {
   const [reminders, setReminders] = useState([]);
   const [nextReminder, setNextReminder] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [doctors, setDoctors] = useState([]);
+  const [patientRequests, setPatientRequests] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
   const navigate = useNavigate();
 
   // Fetch Data
@@ -73,11 +76,55 @@ const Patient = () => {
     setNextReminder(upcoming || null);
   }, [reminders]);
 
+  // Fetch doctors and patient requests
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    try {
+      const res = await getAllDoctors();
+      setDoctors(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error("Failed to fetch doctors:", err);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  const fetchPatientRequests = async () => {
+    try {
+      const res = await getPatientRequests();
+      setPatientRequests(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error("Failed to fetch patient requests:", err);
+    }
+  };
+
+  // Handle send request
+  const handleSendRequest = async (doctorId) => {
+    try {
+      await sendDoctorRequest(doctorId);
+      await fetchPatientRequests(); // Refresh requests to update UI
+      alert("Request sent to doctor successfully!");
+    } catch (err) {
+      console.error("Failed to send request:", err);
+      alert(err.response?.data?.message || "Failed to send request. Please try again.");
+    }
+  };
+
+  // Get request status for a doctor
+  const getRequestStatus = (doctorId) => {
+    const request = patientRequests.find(
+      (req) => req.doctorId?._id === doctorId || req.doctorId === doctorId
+    );
+    return request ? request.status : null;
+  };
+
   // Initial load
   useEffect(() => {
     fetchMedicines();
     fetchHistoryData();
     fetchReminders();
+    fetchDoctors();
+    fetchPatientRequests();
   }, []);
 
   const handleMedicineUpdate = async () => {
@@ -136,7 +183,62 @@ const Patient = () => {
         </div>
       </section>
 
-      {/* 💊 Medicine Section */}
+      {/* 🩺 Doctor Request Section */}
+      <section className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 rounded-3xl shadow-xl border border-gray-200 p-8">
+          <h2 className="text-2xl font-semibold text-indigo-700 mb-6 flex items-center gap-2">
+            🩺 Connect with Doctors
+          </h2>
+          {loadingDoctors ? (
+            <p className="text-gray-600">Loading doctors...</p>
+          ) : doctors.length === 0 ? (
+            <p className="text-gray-600">No doctors available at the moment.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {doctors.map((doctor) => {
+                const requestStatus = getRequestStatus(doctor._id);
+                return (
+                  <div
+                    key={doctor._id}
+                    className="bg-white p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <h3 className="font-semibold text-indigo-700">{doctor.username}</h3>
+                      <p className="text-sm text-gray-600">{doctor.email}</p>
+                      {doctor.code && (
+                        <p className="text-xs text-gray-500">Code: {doctor.code}</p>
+                      )}
+                      <button
+                        onClick={() => handleSendRequest(doctor._id)}
+                        disabled={requestStatus === "PENDING" || requestStatus === "ACCEPTED"}
+                        className={`mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          requestStatus === "ACCEPTED"
+                            ? "bg-green-100 text-green-700 cursor-not-allowed"
+                            : requestStatus === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700 cursor-not-allowed"
+                            : requestStatus === "REJECTED"
+                            ? "bg-red-100 text-red-700 hover:bg-red-200"
+                            : "bg-indigo-600 text-white hover:bg-indigo-700"
+                        }`}
+                      >
+                        {requestStatus === "ACCEPTED"
+                          ? "✓ Accepted"
+                          : requestStatus === "PENDING"
+                          ? "⏳ Pending"
+                          : requestStatus === "REJECTED"
+                          ? "Resend Request"
+                          : "Send Request"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/*  Medicine Section */}
       <section className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* ➕ Add/Edit Medicine */}
         <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 p-8 rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">

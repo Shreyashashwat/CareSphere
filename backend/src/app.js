@@ -9,6 +9,7 @@ import saveNotificationToken from "./firebase/routes.js"
 import caregiverRoutes from "./routes/caregiver.routes.js"
 import googleAuth from "./routes/googleapis.routes.js"
 import googleCalendarRoutes from "./routes/googleCalender.routes.js";
+import doctorPatientRoutes from "./routes/doctorPatient.routes.js";
 
 import { sendnoti } from "./firebase/SendNotification.js"
 
@@ -43,6 +44,7 @@ app.use("/api/v1/chatbot", chatbotRoute);
 app.use("/api/v1/save-token", saveNotificationToken)
 app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
+app.use("/api/v1", doctorPatientRoutes);
 
 sendnoti()
 

@@ -77,4 +77,24 @@ const logOut = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-export { registerUser, loginUser, logOut };
+// export { registerUser, loginUser, logOut };
+const connectToDoctor = asyncHandler(async (req, res) => {
+  const { doctorCode } = req.body;
+  const userId = req.user._id; // From verifyJWT middleware
+
+  if (!doctorCode) throw new ApiError(400, "Doctor code is required");
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: { doctorCode } },
+    { new: true }
+  ).select("-password");
+
+  if (!user) throw new ApiError(404, "User not found");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Successfully connected to doctor"));
+});
+
+export { registerUser, loginUser, logOut,connectToDoctor };
