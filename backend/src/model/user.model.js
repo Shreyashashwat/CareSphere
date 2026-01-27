@@ -47,6 +47,17 @@ hasGoogleAccount: {
   type: Boolean,
   default: false,
 },
+    doctorCode: {
+      type: String,
+      required: true, 
+      unique: true, 
+      uppercase: true, 
+      trim: true,
+    },
+     role:{
+        type:String,
+        default:"user",
+    },
 
         fcmToken: {
             type: String,

@@ -42,13 +42,17 @@ function ChatbotWrapper() {
     return () => unsubscribe();
   }, [location.pathname]);
 
+  // Logic: Only show ChatWidget on the /patient route
   if (location.pathname !== "/patient") return null;
 
+  // If user is on /patient but not logged in, show a friendly prompt
   if (!user || !token) {
     return (
-      <p className="text-center text-red-500 mt-4">
-        Please log in to use the chatbot.
-      </p>
+      <div className="fixed bottom-4 right-4 z-50">
+        <p className="text-xs text-red-500 bg-white border border-red-200 px-3 py-2 rounded-lg shadow-lg">
+          Log in to chat with AI Assistant 🤖
+        </p>
+      </div>
     );
   }
 
@@ -63,11 +67,15 @@ function App() {
         .then((reg) => console.log("Service Worker registered:", reg))
         .catch((err) => console.error("SW registration failed:", err));
     }
+  // Request Firebase Cloud Messaging permission on app mount
+  // useEffect(() => {
+  //   requestPermission();
   }, []);
 
   return (
     <UserProvider>
       <Router>
+        {/* Navigation Header appears on all pages */}
         <Header />
         <Messaging /> {/* Requests notification permission */}
         <Routes>

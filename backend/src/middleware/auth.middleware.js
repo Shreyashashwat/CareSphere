@@ -1,25 +1,64 @@
+// import jwt from "jsonwebtoken";
+// import { ApiError } from "../utils/ApiError.js";
+
+// export const verifyJwt = (req, res, next) => {
+//   const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+//   if (!token) throw new ApiError(401, "Unauthorized: No token provided");
+
+//   try {
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     req.user = decoded._id;
+//     console.log(token)
+//     console.log("Decoded token:", decoded);
+
+//     next();
+//   } catch (error) {
+//     throw new ApiError(401, "Invalid or expired token");
+//   }
+// };
+// export const doctorOnly = (req, res, next) => {
+//   if (req.user?.role !== "doctor") {
+//     return res.status(403).json({ message: "Doctor access only" });
+//   }
+//   next();
+// };
+
+
 import jwt from "jsonwebtoken";
 import { ApiError } from "../utils/ApiError.js";
+import { User } from "../model/user.model.js";
 
-export const verifyJwt = (req, res, next) => {
-  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-  if (!token) throw new ApiError(401, "Unauthorized: No token provided");
-
+export const verifyJwt = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded._id;
-    console.log(token)
-    console.log("Decoded token:", decoded);
+    const token =
+      req.cookies?.token ||
+      req.headers.authorization?.split(" ")[1];
 
+    if (!token) {
+      throw new ApiError(401, "Unauthorized: No token provided");
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // console.log("Decoded token:", decoded);
+
+    // 🔥 Fetch full user from DB
+    const user = await User.findById(decoded._id).select("-password");
+
+    if (!user) {
+      throw new ApiError(401, "Invalid token user");
+    }
+
+    req.user = user; // ✅ FIX
     next();
   } catch (error) {
-    throw new ApiError(401, "Invalid or expired token");
+    next(error);
   }
 };
+
 export const doctorOnly = (req, res, next) => {
   if (req.user?.role !== "doctor") {
     return res.status(403).json({ message: "Doctor access only" });
   }
   next();
 };
-
