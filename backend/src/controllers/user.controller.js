@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req, res) => {
   console.log("yes noo")
-  const { username, email, password, age, gender } = req.body;
+  const { username, email, password, age, gender ,doctorCode} = req.body;
 
   if ([username, email, password, gender].some((field) => field?.trim() === "") || !age) {
     throw new ApiError(400, "All fields are required");
@@ -25,7 +25,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "User already registered");
   }
 
-  const user = new User({ username, email, password, age, gender });
+  const user = new User({ username, email, password, age, gender ,doctorCode});
   await user.save();
 
   const createdUser = await User.findById(user._id).select("-password");
@@ -58,7 +58,7 @@ const loginUser = asyncHandler(async (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "7d" } 
   );
-  console.log("hgffd");
+  // console.log("hgffd");
   console.log("Generated Token:", token);
 
   const loggedInUser = await User.findById(user._id).select("-password");
@@ -77,7 +77,8 @@ const logOut = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-// export { registerUser, loginUser, logOut };
+
+
 const connectToDoctor = asyncHandler(async (req, res) => {
   const { doctorCode } = req.body;
   const userId = req.user._id; // From verifyJWT middleware
