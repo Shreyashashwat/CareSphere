@@ -23,20 +23,6 @@ const userSchema = new Schema(
             type: String,
             required: [true, "Password is required"],
         },
-    //     age: {
-    //         type: Number,
-    //         required: true,
-    //         min: 0,
-    //         max: 120,
-    //     },
-    //     gender: {
-    //         type: String,
-    //         enum: ["Male", "Female", "Other"],
-    //         required: true,
-    //     // },
-
-
-    // },
     age:{
         type:Number,
         required:true,
@@ -54,19 +40,19 @@ const userSchema = new Schema(
     },
     googleTokens: {
     access_token: { type: String },
-    refresh_token: { type: String }, // optional, if you ever want offline access
+    refresh_token: { type: String }, 
     expiry_date: { type: Number }
 },
 hasGoogleAccount: {
   type: Boolean,
   default: false,
 },
+
+        fcmToken: {
+            type: String,
+            default: null,
+        },
     },
-    //     fcmToken: {
-    //         type: String,
-    //         default: null,
-    //     },
-    // },
     {
         timestamps: true,
     }
@@ -92,3 +78,4 @@ userSchema.methods.generateToken = function () {
 };
 
 export const User = mongoose.model("User", userSchema);
+
