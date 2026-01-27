@@ -23,19 +23,41 @@ const userSchema = new Schema(
             type: String,
             required: [true, "Password is required"],
         },
-        age: {
-            type: Number,
-            required: true,
-            min: 0,
-            max: 120,
-        },
-        gender: {
-            type: String,
-            enum: ["Male", "Female", "Other"],
-            required: true,
-        },
-
-
+    age:{
+        type:Number,
+        required:true,
+        min:0,
+        max:120,
+    },
+    gender:{
+        type:String,
+        enum:["Male","Female","Other"],
+        required:true,
+    },
+    fcmToken: {  
+      type: String,
+      default: null,
+    },
+    googleTokens: {
+    access_token: { type: String },
+    refresh_token: { type: String }, 
+    expiry_date: { type: Number }
+},
+hasGoogleAccount: {
+  type: Boolean,
+  default: false,
+},
+    doctorCode: {
+      type: String,
+      required: true, 
+      unique: true, 
+      uppercase: true, 
+      trim: true,
+    },
+     role:{
+        type:String,
+        default:"user",
+    },
 
         fcmToken: {
             type: String,
@@ -67,3 +89,4 @@ userSchema.methods.generateToken = function () {
 };
 
 export const User = mongoose.model("User", userSchema);
+

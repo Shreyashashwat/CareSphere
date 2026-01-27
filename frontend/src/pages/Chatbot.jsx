@@ -11,6 +11,7 @@ function ChatWidget() {
   const userId = storedUser?._id;
   const authToken = storedUser?.token;
 
+ 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -25,6 +26,9 @@ function ChatWidget() {
     setInputText("");
 
     try {
+   
+      console.log("Sending message with token:", authToken);
+
       const resp = await axios.post(
         "http://localhost:8000/api/v1/chatbot",
         { userId, message: inputText },
@@ -55,8 +59,8 @@ function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
-      {/* Floating Chat Button */}
+    <div className="fixed bottom-4 right-4">
+  
       <button
         onClick={toggleChat}
         className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:scale-110 transform transition-all duration-300"
@@ -64,7 +68,7 @@ function ChatWidget() {
         {isOpen ? "✖" : "💬"}
       </button>
 
-      {/* Chat Window */}
+  
       {isOpen && (
         <div className="mt-3 w-80 sm:w-96 h-[480px] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden border border-gray-200 animate-fadeIn">
           {/* Header */}
