@@ -7,15 +7,8 @@ export const verifyJwt = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Support both 'id' (from user model method) and '_id' (from login controller)
-    req.user = {
-      id: decoded.id || decoded._id,
-      email: decoded.email,
-      role: decoded.role,
-
-
-    };
-
+    req.user = decoded._id;
+    console.log(token)
     console.log("Decoded token:", decoded);
 
     next();
@@ -23,3 +16,10 @@ export const verifyJwt = (req, res, next) => {
     throw new ApiError(401, "Invalid or expired token");
   }
 };
+export const doctorOnly = (req, res, next) => {
+  if (req.user?.role !== "doctor") {
+    return res.status(403).json({ message: "Doctor access only" });
+  }
+  next();
+};
+
