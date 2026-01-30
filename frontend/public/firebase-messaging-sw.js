@@ -19,8 +19,12 @@ messaging.onBackgroundMessage(function(payload) {
 
   const notificationTitle = payload.notification?.title || 'CareSphere';
   const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/logo192.png'
+    body,
+    icon: '/logo192.png',
+    data, // keep all fields for click actions
+    actions: [
+      
+    ]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
