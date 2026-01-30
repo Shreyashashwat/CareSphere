@@ -9,7 +9,7 @@ import saveNotificationToken from "./firebase/routes.js"
 import caregiverRoutes from "./routes/caregiver.routes.js"
 import googleAuth from "./routes/googleapis.routes.js"
 import googleCalendarRoutes from "./routes/googleCalender.routes.js";
-
+import { createRemindersCron } from "./firebase/remindercreationfile.js"
 import { sendnoti } from "./firebase/SendNotification.js"
 
 
@@ -45,5 +45,6 @@ app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
 
 sendnoti()
+createRemindersCron();
 
 export default app
