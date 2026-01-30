@@ -1,7 +1,6 @@
-import React, { useState,useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../api";
-
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -14,7 +13,6 @@ const HomePage = () => {
     age: 0,
     gender: "",
   });
-   
 
   const clearForms = () => {
     setLoginData({ email: "", password: "" });
@@ -23,46 +21,56 @@ const HomePage = () => {
 
   const handleToggle = (isLogin) => {
     setShowLogin(isLogin);
-    clearForms(); 
+    clearForms();
   };
 
   const handleLoginChange = (e) =>
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
+  const handleGoogleLogin = () => {
+  // Redirect directly to backend Google OAuth
+  window.location.href = "http://localhost:8000/api/v1/auth/google";
+};
+
 
   const handleRegisterChange = (e) =>
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
 
+  // ------------------- Updated Login Submit -------------------
+  
 const handleLoginSubmit = async (e) => {
   e.preventDefault();
+
   try {
     const res = await loginUser(loginData);
-    console.log("Login success:", res.data);
-
-  
     const { user, token } = res.data.data;
 
     localStorage.setItem(
       "user",
-      JSON.stringify({ _id: user._id, username: user.username,token })
+      JSON.stringify({ _id: user._id, username: user.username, token })
     );
 
-    alert("Login successful!");
+    // ✅ ALWAYS go to patient
     navigate("/patient");
+
   } catch (error) {
     console.error("Login error:", error);
-    alert("Login failed! Check credentials or server connection.");
+    alert("Login failed! Check credentials.");
   }
 };
+
+      navigate("/patient");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Login failed! Check credentials or server connection.");
+    }
+  };
 
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await registerUser(registerData);
-      console.log("Registration success:", res.data);
-      alert("Registration successful!");
-
-      
+      alert("Registration successful! Please login.");
       handleToggle(true);
     } catch (error) {
       console.error("Register error:", error);
@@ -70,15 +78,13 @@ const handleLoginSubmit = async (e) => {
     }
   };
 
+  // ------------------- JSX -------------------
   return (
     <div
       className="relative min-h-screen flex items-center justify-center bg-cover bg-center"
-      style={{
-        backgroundImage: "url('/medical-technology-icon-set-health-wellness.jpg')",
-      }}
+      style={{ backgroundImage: "url('/medical-technology-icon-set-health-wellness.jpg')" }}
     >
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xs"></div>
-
       <div className="relative z-10 flex flex-col items-center px-4">
         <h1 className="text-5xl sm:text-6xl font-extrabold text-white mb-6 drop-shadow-lg">
           Care<span className="text-blue-300">Sphere</span>
@@ -92,9 +98,7 @@ const handleLoginSubmit = async (e) => {
             <button
               onClick={() => handleToggle(true)}
               className={`px-6 py-2 rounded-full font-semibold transition ${
-                showLogin
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-700 hover:text-blue-600"
+                showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
               }`}
             >
               Login
@@ -102,9 +106,7 @@ const handleLoginSubmit = async (e) => {
             <button
               onClick={() => handleToggle(false)}
               className={`px-6 py-2 rounded-full font-semibold transition ${
-                !showLogin
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-700 hover:text-blue-600"
+                !showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
               }`}
             >
               Register
@@ -113,28 +115,51 @@ const handleLoginSubmit = async (e) => {
 
           {showLogin ? (
             <form className="space-y-5" onSubmit={handleLoginSubmit}>
-              <input
-                type="email"
-                name="email"
-                value={loginData.email}
-                onChange={handleLoginChange}
-                placeholder="Email"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-              />
-              <input
-                type="password"
-                name="password"
-                value={loginData.password}
-                onChange={handleLoginChange}
-                placeholder="Password"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-              />
-              <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-shadow shadow-md">
-                Login
-              </button>
-            </form>
+  <input
+    type="email"
+    name="email"
+    value={loginData.email}
+    onChange={handleLoginChange}
+    placeholder="Email"
+    required
+    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400"
+  />
+
+  <input
+    type="password"
+    name="password"
+    value={loginData.password}
+    onChange={handleLoginChange}
+    placeholder="Password"
+    required
+    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400"
+  />
+
+  <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold">
+    Login
+  </button>
+
+  {/* Google Sign In */}
+  <div className="flex items-center gap-3 my-4">
+    <div className="flex-1 h-px bg-gray-300"></div>
+    <span className="text-gray-500 text-sm">OR</span>
+    <div className="flex-1 h-px bg-gray-300"></div>
+  </div>
+
+  <button
+    type="button"
+    onClick={handleGoogleLogin}
+    className="w-full flex items-center justify-center gap-3 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-100"
+  >
+    <img
+      src="https://developers.google.com/identity/images/g-logo.png"
+      className="w-5 h-5"
+      alt="Google"
+    />
+    Sign in with Google
+  </button>
+</form>
+
           ) : (
             <form className="space-y-5" onSubmit={handleRegisterSubmit}>
               <input
@@ -189,7 +214,7 @@ const handleLoginSubmit = async (e) => {
                 </select>
               </div>
 
-              <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-shadow shadow-md">
+              <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-shadow shadow-md">
                 Register
               </button>
             </form>

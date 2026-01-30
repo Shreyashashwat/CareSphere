@@ -2,134 +2,88 @@
 
 import cron from "node-cron";
 import admin from "./firebaseAdmin.js";
+import { Reminder } from "../model/reminderstatus.js";
 import { Medicine } from "../model/medicine.model.js";
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.gmail.com",
-  port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
-  secure: process.env.EMAIL_SECURE === "true", // true for port 465
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+import { handleMissedReminder } from "../controllers/reminder.controller.js";
 
-transporter.verify()
-
-  .then(() => console.log("Email transporter ready"))
-  .catch(err => console.error("Email transporter error:", err));
-
-
-async function sendEmail(to, subject, text, html) {
-  const mailOptions = {
-    from: `"CareSphere" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-    html,
+/** 🔔 Send FCM notification */
+async function sendNotification(token, medicine) {
+  const message = {
+    data: {
+      title: `💊 Medicine Reminder`,
+      body: `Time to take your medicine: ${medicine.medicineName} (${medicine.dosage})`,
+      medicineId: medicine._id.toString(),
+    },
+    token,
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("email send");
-    // console.log(`📧 Email sent to ${to}: ${info.messageId}`);
-  } catch (err) {
-    console.error("Error sending email:", err);
-  }
-}
-
-
-async function sendNotification(token, title, body) {
-  const message = { notification: { title, body }, token };
-  try {
     await admin.messaging().send(message);
-    console.log(`Notification sent to token: ${token}`);
+    console.log(`✅ Notification sent`);
   } catch (err) {
-    console.error("Error sending notification:", err);
+    console.error("❌ Error sending notification:", err);
   }
 }
 
-//****************crone job******************** */
+/** 🕒 Minute Cron: ONLY sends notifications for existing reminders */
 const sendnoti = () => {
   cron.schedule("* * * * *", async () => {
-    console.log("🕒 Cron triggered:", new Date().toLocaleString());
+    console.log("⏰ Notification cron triggered:", new Date().toLocaleString());
 
     try {
       const now = new Date();
-      const medicines = await Medicine.find().populate("userId");
+      const windowStart = new Date(now.getTime() - 60 * 1000);
+      const windowEnd = new Date(now.getTime() + 60 * 1000);
 
-      for (const med of medicines) {
-        const user = med.userId;
-        console.log(med.time);
-        // console.log(`Medicine: ${med.medicineName}, Times:`, med.time);
+      // 🔎 Find reminders due now
+      const reminders = await Reminder.find({
+        status: "pending",
+        time: { $gte: windowStart, $lte: windowEnd },
+      }).populate("medicineId userId");
 
-        if (!user) {
-          console.log("skipping");
-          // console.log("Skipping, user missing", med);
-          continue;
+      for (const reminder of reminders) {
+        const user = reminder.userId;
+        const medicine = reminder.medicineId;
+
+        if (!user || !user.fcmToken || !medicine) continue;
+
+        // 🔔 Send notification
+        await sendNotification(user.fcmToken, medicine);
+
+        console.log(
+          `🔔 Reminder notified: ${medicine.medicineName} for user ${user._id}`
+        );
+      }
+
+      // ⚠️ Handle missed reminders (>30 minutes late)
+      const lateReminders = await Reminder.find({
+        status: "pending",
+        processedMissed: false,
+        time: { $lt: new Date(now.getTime() - 30 * 60 * 1000) },
+      });
+
+      for (const reminder of lateReminders) {
+       
+
+        const medicine = await Medicine.findById(reminder.medicineId);
+        reminder.processedMissed = true;
+        if (medicine) {
+          medicine.missedCount += 1;
+          await medicine.save();
         }
 
-        for (const t of med.time) {
-          const [hours, minutes] = t.split(":").map(Number);
-          const medTime = new Date(now);
-          medTime.setHours(hours, minutes, 0, 0);
+        await handleMissedReminder(reminder._id);
 
-          const diff = Math.abs(medTime.getTime() - now.getTime());
-          console.log(`Now: ${now.toTimeString()}, MedTime: ${medTime.toTimeString()}, Diff(ms): ${diff}`);
-
-          // Only send if within 2 minutes window
-          if (diff < 120000) {
-            // Prevent duplicate notifications within same day
-            if (med.lastNotified) {
-              const last = new Date(med.lastNotified);
-              if (
-                last.toDateString() === now.toDateString() &&
-                Math.abs(last.getTime() - medTime.getTime()) < 60000
-              ) {
-                console.log(`Already notified for ${med.medicineName} at ${t}`);
-                continue;
-              }
-            }
-
-            const title = `hii ${user.username}💊 Medicine Reminder`;
-            const body = `Time to take your medicine: ${med.medicineName} (${med.dosage})`;
-
-            // 🔹 Send FCM Notification (if token exists)
-            if (user.fcmToken) {
-              await sendNotification(user.fcmToken, title, body);
-            }
-
-            // 🔹 Send Email (if user email exists)
-            if (user.email) {
-              const html = `
-                <div style="font-family: Arial, sans-serif; padding: 15px;">
-                  <h2>💊 Medicine Reminder</h2>
-                  <p>Hi ${user.username || "there"},</p>
-                  <p>This is a reminder to take your medicine:</p>
-                  <p><strong>${med.medicineName}</strong> (${med.dosage})</p>
-                  <p>Scheduled time: ${t}</p>
-                  <br/>
-                  <p>Stay healthy!<br/>– CareSphere Team</p>
-                </div>
-              `;
-              await sendEmail(user.email, title, body, html);
-            }
-
-            // Save lastNotified timestamp
-            med.lastNotified = now;
-            await med.save();
-          }
-        }
+        console.log(
+          `⚠️ Marked as missed reminder ${reminder._id}`
+        );
       }
     } catch (err) {
-      console.error("Error in cron job:", err);
+      console.error("❌ Error in notification cron:", err);
     }
   });
 
-  console.log("Cron job scheduled: checking medicine reminders every minute.");
+  console.log("🕐 Minute notification cron scheduled.");
 };
 
 export { sendnoti };
-
