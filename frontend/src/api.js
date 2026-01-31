@@ -16,6 +16,7 @@ API.interceptors.request.use((req) => {
 });
 
 export const loginUser = (data) => API.post("/users/login", data);
+export const loginDoctor = (data) => API.post("/users/login-doctor", data);
 export const registerUser = (data) => API.post("/users/register", data);
 
 

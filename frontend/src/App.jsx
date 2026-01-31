@@ -67,9 +67,9 @@ function App() {
         .then((reg) => console.log("Service Worker registered:", reg))
         .catch((err) => console.error("SW registration failed:", err));
     }
-  // Request Firebase Cloud Messaging permission on app mount
-  // useEffect(() => {
-  //   requestPermission();
+    // Request Firebase Cloud Messaging permission on app mount
+    // useEffect(() => {
+    //   requestPermission();
   }, []);
 
   return (
