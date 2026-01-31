@@ -22,6 +22,11 @@ export const registerUser = (data) => API.post("/users/register", data);
 
 export const getMedicines = () => API.get("/medicine");
 export const addMedicine = (data) => API.post("/medicine", data);
+// Doctor / Connectivity APIs
+export const getAllDoctors = () => API.get("/users/doctors");
+export const sendDoctorRequest = (doctorId) => API.post("/users/request-doctor", { doctorId });
+export const getPatientRequests = () => API.get("/users/patient-requests");
+export const respondToRequest = (requestId, status) => API.put(`/users/request-doctor/${requestId}`, { status });
 export const deleteMedicine = (id) => API.delete(`/medicine/${id}`);
 export const updateMedicine = (id, data) => API.put(`/medicine/${id}`, data);
 export const getMedicine = (id) => API.get(`/medicine/${id}`);

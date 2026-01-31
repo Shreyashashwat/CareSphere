@@ -6,10 +6,6 @@ import MedicineForm from "../components/MedicineForm";
 import HistoryTable from "../components/HistoryTable";
 import CalendarView from "../components/CalendarView";
 import DashboardChart from "../components/DashboardChart";
-<<<<<<< HEAD
-import { getMedicines, fetchHistory, getReminders, deleteMedicine } from "../api";
-=======
-
 import {
   getMedicines,
   fetchHistory,
@@ -24,8 +20,6 @@ import AlertsView from "../components/Caregiver/AlertsView";
 import PatientsView from "../components/Caregiver/PatientsView";
 import PatientDetailModal from "../components/Caregiver/PatientDetailModal";
 
->>>>>>> d21f6254 (Update user controller, routes, and frontend pages)
-
 const Patient = () => {
   const [selectedMedicine, setSelectedMedicine] = useState(null);
   const [medicines, setMedicines] = useState([]);
@@ -33,6 +27,11 @@ const Patient = () => {
   const [reminders, setReminders] = useState([]);
   const [nextReminder, setNextReminder] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Doctor Integration State
+  const [doctors, setDoctors] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
   const navigate = useNavigate();
 
   // Fetch Data
@@ -71,6 +70,43 @@ const Patient = () => {
     }
   };
 
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    try {
+      const res = await getAllDoctors();
+      setDoctors(res.data?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch doctors:", err);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const res = await getPatientRequests();
+      setRequests(res.data?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch requests:", err);
+    }
+  };
+
+  const handleSendRequest = async (doctorId) => {
+    try {
+      await sendDoctorRequest(doctorId);
+      alert("Request sent successfully!");
+      fetchRequests();
+    } catch (err) {
+      console.error("Failed to send request:", err);
+      alert("Failed to send request");
+    }
+  };
+
+  const getRequestStatus = (doctorId) => {
+    const req = requests.find((r) => r.doctor?._id === doctorId || r.doctor === doctorId);
+    return req ? req.status : null;
+  };
+
   // Delete medicine handler
   const handleDeleteMedicine = async (id) => {
     if (!window.confirm("Are you sure you want to delete this medicine?")) return;
@@ -96,6 +132,8 @@ const Patient = () => {
     fetchMedicines();
     fetchHistoryData();
     fetchReminders();
+    fetchDoctors();
+    fetchRequests();
   }, []);
 
   const handleMedicineUpdate = async () => {
@@ -129,32 +167,6 @@ const Patient = () => {
         </div>
       </header>
 
-<<<<<<< HEAD
-      {/* 🩺 Welcome Section */}
-      <section className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-none sm:rounded-3xl p-8 shadow-lg mt-6 mx-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div>
-            <h2 className="text-3xl font-semibold mb-2">
-              Welcome back, <span className="font-bold">{username} 👋</span>
-            </h2>
-            <p className="text-white/90 text-sm sm:text-base">
-              Here’s your personalized health dashboard.
-            </p>
-          </div>
-          <div className="mt-4 sm:mt-0 text-center bg-white/10 backdrop-blur-md rounded-2xl px-6 py-4">
-            <p className="text-sm text-white/80">Next Reminder</p>
-            <p className="text-2xl font-bold mt-1">
-              {nextReminder
-                ? `${new Date(nextReminder.time).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })} — ${nextReminder.medicineId?.medicineName}`
-                : "No upcoming reminders"}
-            </p>
-          </div>
-        </div>
-      </section>
-=======
       {/* WELCOME */}
       <section className="max-w-7xl mx-auto px-6 py-8 bg-indigo-600 text-white rounded-3xl mt-6">
         <h2 className="text-3xl font-bold">
@@ -173,7 +185,6 @@ const Patient = () => {
 
       {/* CONNECTIVITY SECTION (Doctors & Caregivers) */}
       <section className="max-w-7xl mx-auto px-6 py-6 grid lg:grid-cols-2 gap-8">
->>>>>>> d21f6254 (Update user controller, routes, and frontend pages)
 
         {/* DOCTOR REQUESTS */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -206,10 +217,10 @@ const Patient = () => {
                       disabled={status === "PENDING" || status === "ACCEPTED"}
                       onClick={() => handleSendRequest(doc._id)}
                       className={`mt-3 w-full py-2 px-4 rounded-lg font-medium transition-all text-sm ${status === "ACCEPTED"
-                          ? "hidden"
-                          : status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-700 cursor-default"
-                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow"
+                        ? "hidden"
+                        : status === "PENDING"
+                          ? "bg-yellow-100 text-yellow-700 cursor-default"
+                          : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow"
                         }`}
                     >
                       {status === "PENDING" ? "⏳ Request Pending" : "Send Connection Request"}
