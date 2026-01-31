@@ -6,7 +6,25 @@ import MedicineForm from "../components/MedicineForm";
 import HistoryTable from "../components/HistoryTable";
 import CalendarView from "../components/CalendarView";
 import DashboardChart from "../components/DashboardChart";
+<<<<<<< HEAD
 import { getMedicines, fetchHistory, getReminders, deleteMedicine } from "../api";
+=======
+
+import {
+  getMedicines,
+  fetchHistory,
+  getReminders,
+  deleteMedicine,
+  getAllDoctors,
+  sendDoctorRequest,
+  getPatientRequests,
+} from "../api";
+import CaregiverList from "../components/CaregiverList";
+import AlertsView from "../components/Caregiver/AlertsView";
+import PatientsView from "../components/Caregiver/PatientsView";
+import PatientDetailModal from "../components/Caregiver/PatientDetailModal";
+
+>>>>>>> d21f6254 (Update user controller, routes, and frontend pages)
 
 const Patient = () => {
   const [selectedMedicine, setSelectedMedicine] = useState(null);
@@ -111,6 +129,7 @@ const Patient = () => {
         </div>
       </header>
 
+<<<<<<< HEAD
       {/* 🩺 Welcome Section */}
       <section className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-none sm:rounded-3xl p-8 shadow-lg mt-6 mx-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
@@ -135,64 +154,101 @@ const Patient = () => {
           </div>
         </div>
       </section>
-
-      {/* 💊 Medicine Section */}
-      <section className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* ➕ Add/Edit Medicine */}
-        <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 p-8 rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">
-          <h2 className="text-2xl font-semibold text-indigo-700 mb-6 flex items-center gap-2">
-            ➕ Add / Edit Medicine
-          </h2>
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-200 scrollbar-track-transparent">
-            <MedicineForm
-              onSuccess={handleMedicineUpdate}
-              medicine={selectedMedicine}
-            />
-          </div>
-        </div>
-
-        {/* 💊 Medicine List */}
-         <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-2xl transition-all bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50">
-         
-            <MedicineList
-              medicines={medicines}
-              reminders={reminders}
-              onUpdate={handleMedicineUpdate}
-              onEdit={setSelectedMedicine}
-            />
-          </div>
+=======
+      {/* WELCOME */}
+      <section className="max-w-7xl mx-auto px-6 py-8 bg-indigo-600 text-white rounded-3xl mt-6">
+        <h2 className="text-3xl font-bold">
+          Welcome back, {username} 👋
+        </h2>
+        <p className="mt-2">
+          Next Reminder:{" "}
+          {nextReminder
+            ? `${new Date(nextReminder.time).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })} — ${nextReminder.medicineId?.medicineName}`
+            : "No upcoming reminders"}
+        </p>
       </section>
 
-      {/* 📅 Calendar */}
-      <section className="max-w-7xl mx-auto px-6">
-       <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50  rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">
-          
-          <CalendarView key={refreshTrigger} reminders={reminders} />
+      {/* CONNECTIVITY SECTION (Doctors & Caregivers) */}
+      <section className="max-w-7xl mx-auto px-6 py-6 grid lg:grid-cols-2 gap-8">
+>>>>>>> d21f6254 (Update user controller, routes, and frontend pages)
+
+        {/* DOCTOR REQUESTS */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
+            🩺 Connect with Doctors
+          </h2>
+          {loadingDoctors ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : doctors.length === 0 ? (
+            <div className="text-center py-8 bg-blue-50 rounded-xl border border-blue-100">
+              <p className="text-slate-600">No doctors available.</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {doctors.map(doc => {
+                const status = getRequestStatus(doc._id);
+                return (
+                  <div key={doc._id} className="p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition-colors bg-slate-50/50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-slate-800">{doc.username}</h3>
+                        <p className="text-sm text-slate-500">{doc.email}</p>
+                      </div>
+                      {status === "ACCEPTED" && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Connected</span>}
+                    </div>
+
+                    <button
+                      disabled={status === "PENDING" || status === "ACCEPTED"}
+                      onClick={() => handleSendRequest(doc._id)}
+                      className={`mt-3 w-full py-2 px-4 rounded-lg font-medium transition-all text-sm ${status === "ACCEPTED"
+                          ? "hidden"
+                          : status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700 cursor-default"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow"
+                        }`}
+                    >
+                      {status === "PENDING" ? "⏳ Request Pending" : "Send Connection Request"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* CAREGIVERS SECTION */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit">
+          <CaregiverList />
+        </div>
+
       </section>
 
-      {/* 📊 Dashboard & History */}
-      <section className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-       <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 p-8 rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">
-          <h2 className="text-xl font-semibold text-indigo-600 mb-4 flex items-center gap-2">
-            📊 Progress Overview
-          </h2>
+      {/* DASHBOARD */}
+      <main className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <MedicineForm
+            medicine={selectedMedicine}
+            onSuccess={handleMedicineUpdate}
+          />
+          <MedicineList
+            medicines={medicines}
+            reminders={reminders}
+            onEdit={setSelectedMedicine}
+            onUpdate={handleMedicineUpdate}
+          />
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
           <DashboardChart key={refreshTrigger} history={history} />
-        </div>
-
-      <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 p-8 rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">
-          <h2 className="text-xl font-semibold text-indigo-600 mb-4 flex items-center gap-2 justify-center">
-            📘 Dose History
-          </h2>
+          <CalendarView reminders={reminders} />
           <HistoryTable history={history} />
         </div>
-      </section>
-
-      {/* ⚙️ Footer */}
-      <footer className="text-center mt-12 py-6 text-sm text-gray-500 border-t border-gray-200">
-        © {new Date().getFullYear()}{" "}
-        <span className="font-semibold text-indigo-600">CareSphere</span> — Built for Better Health 🩺
-      </footer>
+      </main>
     </div>
   );
 };

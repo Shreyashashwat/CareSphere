@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser, registerUser } from "../api";
+import { loginUser, registerUser, loginDoctor } from "../api";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(true);
+  const [role, setRole] = useState("patient"); // "patient" or "doctor"
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
     username: "",
@@ -31,37 +32,40 @@ const HomePage = () => {
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
 
   // ------------------- Updated Login Submit -------------------
-  
-const handleLoginSubmit = async (e) => {
-  e.preventDefault();  // Prevent default form submit
-  // log current form state
 
-  try {
-    // Send loginData (email & password) to backend
-    const res = await loginUser(loginData);  
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      let res;
+      if (role === "doctor") {
+        res = await loginDoctor(loginData);
+      } else {
+        res = await loginUser(loginData);
+      }
 
-    const { user, token } = res.data.data;
+      const { user, token } = res.data.data;
 
+      // Save user info and token locally (preserving existing structure)
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ _id: user._id, username: user.username, token, role: role })
+      );
 
-    // Save user info and token locally
-    localStorage.setItem(
-      "user",
-      JSON.stringify({ _id: user._id, username: user.username, token })
-    );
-
-    // Redirect to Google OAuth if not connected
-    if (!user.hasGoogleAccount) {
-      window.location.href = `http://localhost:8000/api/v1/auth/google?token=${token}`;
-      return;
+      if (role === "doctor") {
+        navigate("/doctor");
+      } else {
+        // Patient Flow
+        if (!user.hasGoogleAccount) {
+          window.location.href = `http://localhost:8000/api/v1/auth/google?token=${token}`;
+          return;
+        }
+        navigate("/patient");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert(error.response?.data?.message || "Login failed! Check credentials.");
     }
-
-    // Navigate to patient page if already connected
-    navigate("/patient");
-  } catch (error) {
-    console.error("Login error:", error);
-    alert("Login failed! Check credentials or server connection.");
-  }
-};
+  };
 
 
   const handleRegisterSubmit = async (e) => {
@@ -95,17 +99,15 @@ const handleLoginSubmit = async (e) => {
           <div className="flex justify-center mb-6 rounded-full bg-gray-200/40 p-1">
             <button
               onClick={() => handleToggle(true)}
-              className={`px-6 py-2 rounded-full font-semibold transition ${
-                showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
-              }`}
+              className={`px-6 py-2 rounded-full font-semibold transition ${showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
+                }`}
             >
               Login
             </button>
             <button
               onClick={() => handleToggle(false)}
-              className={`px-6 py-2 rounded-full font-semibold transition ${
-                !showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
-              }`}
+              className={`px-6 py-2 rounded-full font-semibold transition ${!showLogin ? "bg-blue-600 text-white shadow-md" : "text-gray-700 hover:text-blue-600"
+                }`}
             >
               Register
             </button>
@@ -113,6 +115,31 @@ const handleLoginSubmit = async (e) => {
 
           {showLogin ? (
             <form className="space-y-5" onSubmit={handleLoginSubmit}>
+              {/* Role Toggle for Login */}
+              <div className="flex justify-center gap-4 mb-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="patient"
+                    checked={role === "patient"}
+                    onChange={() => setRole("patient")}
+                    className="form-radio text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className={`font-medium ${role === "patient" ? "text-blue-700" : "text-gray-600"}`}>Patient</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="doctor"
+                    checked={role === "doctor"}
+                    onChange={() => setRole("doctor")}
+                    className="form-radio text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className={`font-medium ${role === "doctor" ? "text-blue-700" : "text-gray-600"}`}>Doctor</span>
+                </label>
+              </div>
               <input
                 type="email"
                 name="email"

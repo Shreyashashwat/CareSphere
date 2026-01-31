@@ -62,6 +62,12 @@ function App() {
         .then((reg) => console.log("Service Worker registered:", reg))
         .catch((err) => console.error("SW registration failed:", err));
     }
+<<<<<<< HEAD
+=======
+    // Request Firebase Cloud Messaging permission on app mount
+    // useEffect(() => {
+    //   requestPermission();
+>>>>>>> d21f6254 (Update user controller, routes, and frontend pages)
   }, []);
 
   return (
