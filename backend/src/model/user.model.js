@@ -34,6 +34,10 @@ const userSchema = new Schema(
             enum: ["Male", "Female", "Other"],
             required: true,
         },
+        doctorCode: {
+            type: String,
+            default: null,
+        },
 
 
 

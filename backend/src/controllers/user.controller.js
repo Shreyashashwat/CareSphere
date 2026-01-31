@@ -1,14 +1,14 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../model/user.model.js";
-import Doctor from "../model/doctor.js";
+import { Doctor } from "../model/doctor.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
 
 const registerUser = asyncHandler(async (req, res) => {
   console.log("yes noo")
-  const { username, email, password, age, gender } = req.body;
+  const { username, email, password, age, gender, doctorCode } = req.body;
 
   if ([username, email, password, gender].some((field) => field?.trim() === "") || !age) {
     throw new ApiError(400, "All fields are required");

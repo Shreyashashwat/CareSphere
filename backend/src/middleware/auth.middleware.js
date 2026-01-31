@@ -23,3 +23,11 @@ export const verifyJwt = (req, res, next) => {
     throw new ApiError(401, "Invalid or expired token");
   }
 };
+
+export const doctorOnly = (req, res, next) => {
+  if (req.user && req.user.role === "doctor") {
+    next();
+  } else {
+    throw new ApiError(403, "Access denied: Doctors only");
+  }
+};
