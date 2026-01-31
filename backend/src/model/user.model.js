@@ -58,6 +58,23 @@ hasGoogleAccount: {
         type:String,
         default:"user",
     },
+        age: {
+            type: Number,
+            required: true,
+            min: 0,
+            max: 120,
+        },
+        gender: {
+            type: String,
+            enum: ["Male", "Female", "Other"],
+            required: true,
+        },
+        doctorCode: {
+            type: String,
+            default: null,
+        },
+
+
 
         fcmToken: {
             type: String,

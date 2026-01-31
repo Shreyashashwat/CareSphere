@@ -70,6 +70,7 @@ function App() {
     // Request Firebase Cloud Messaging permission on app mount
     // useEffect(() => {
     //   requestPermission();
+
   }, []);
 
   return (
