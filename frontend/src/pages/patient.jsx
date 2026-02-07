@@ -32,6 +32,27 @@ const Patient = () => {
   const navigate = useNavigate();
 
   // Fetch Data
+  const [activeTab, setActiveTab] = useState("home");
+const [weeklyInsights, setWeeklyInsights] = useState([]);
+const fetchWeeklyInsights = async () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const res = await fetch(
+      `http://localhost:3000/api/weekly-insights/${user._id}`
+    );
+    const data = await res.json();
+    setWeeklyInsights(data?.insights || []);
+  } catch (err) {
+    console.error("Failed to fetch weekly insights", err);
+  }
+};
+useEffect(() => {
+  if (activeTab === "insights") {
+    fetchWeeklyInsights();
+  }
+}, [activeTab]);
+
+
   const fetchMedicines = async () => {
     try {
       const res = await getMedicines();
@@ -116,6 +137,32 @@ const Patient = () => {
           <h1 className="text-3xl font-extrabold text-indigo-700 tracking-wide flex items-center gap-2">
             <span className="text-blue-500">💊</span> CareSphere
           </h1>
+          <div className="flex gap-4 items-center">
+  <button
+    onClick={() => setActiveTab("home")}
+    className={`px-4 py-2 rounded-full text-m font-medium transition ${
+      activeTab === "home"
+        ? "bg-indigo-600 text-white"
+        : "text-indigo-600 hover:bg-indigo-100"
+    }`}
+  >
+  Home
+  </button>
+
+  <button
+    onClick={() => setActiveTab("insights")}
+    className={`px-4 py-2 rounded-full text-m font-medium transition ${
+      activeTab === "insights"
+        ? "bg-indigo-600 text-white"
+        : "text-indigo-600 hover:bg-indigo-100"
+    }`}
+  >
+    Health Insights
+  </button>
+
+  
+</div>
+
           <button
             onClick={handleLogout}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow transition-all duration-300 hover:scale-105"
@@ -123,6 +170,7 @@ const Patient = () => {
             Logout
           </button>
         </div>
+        
       </header>
 
       {/* WELCOME */}
@@ -140,14 +188,14 @@ const Patient = () => {
             : "No upcoming reminders"}
         </p>
       </section>
-
-      {/* CONNECTIVITY SECTION (Doctors & Caregivers) */}
-      <section className="max-w-7xl mx-auto px-6 py-6 grid lg:grid-cols-2 gap-8">
-
-        {/* DOCTOR REQUESTS */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
-            🩺 Connect with Doctors
+      {activeTab === "home" && (
+        <>
+      {/* 💊 Medicine Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* ➕ Add/Edit Medicine */}
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 p-8 rounded-3xl shadow-xl border border-gray-200 transition-all hover:shadow-2xl flex flex-col">
+          <h2 className="text-2xl font-semibold text-indigo-700 mb-6 flex items-center gap-2">
+            ➕ Add / Edit Medicine
           </h2>
           {loadingDoctors ? (
             <div className="flex justify-center p-8">
@@ -217,7 +265,59 @@ const Patient = () => {
           <CalendarView reminders={reminders} />
           <HistoryTable history={history} />
         </div>
-      </main>
+      </section>
+      </>
+      )}
+      {activeTab === "insights" && (
+  <section className="max-w-6xl mx-auto px-6 py-12">
+    <h2 className="text-3xl font-bold text-indigo-700 mb-8 flex items-center gap-2">
+      🧠 Weekly Health Insights
+    </h2>
+
+    {weeklyInsights.length === 0 ? (
+      <p className="text-gray-500">
+        No insights available yet. Please check back after weekly analysis.
+      </p>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {weeklyInsights.map((insight, idx) => (
+          <div
+            key={idx}
+            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition"
+          >
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                {insight.category}
+              </span>
+              <span
+                className={`text-xs font-semibold ${
+                  insight.priority === "high"
+                    ? "text-red-600"
+                    : insight.priority === "medium"
+                    ? "text-yellow-600"
+                    : "text-green-600"
+                }`}
+              >
+                {insight.priority.toUpperCase()}
+              </span>
+            </div>
+
+            <p className="text-gray-800 text-sm leading-relaxed">
+              {insight.text}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
+
+      {/* ⚙️ Footer */}
+      <footer className="text-center mt-12 py-6 text-sm text-gray-500 border-t border-gray-200">
+        © {new Date().getFullYear()}{" "}
+        <span className="font-semibold text-indigo-600">CareSphere</span> — Built for Better Health 🩺
+      </footer>
     </div>
   );
 };
