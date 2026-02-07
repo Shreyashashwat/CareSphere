@@ -11,6 +11,7 @@ import googleAuth from "./routes/googleapis.routes.js"
 import googleCalendarRoutes from "./routes/googleCalender.routes.js";
 import doctorPatientRoutes from "./routes/doctorPatient.routes.js";
 
+import { createRemindersCron } from "./firebase/remindercreationfile.js"
 import { sendnoti } from "./firebase/SendNotification.js"
 
 
@@ -47,5 +48,6 @@ app.use("/api/v1/google", googleCalendarRoutes);
 app.use("/api/v1", doctorPatientRoutes);
 
 sendnoti()
+createRemindersCron();
 
 export default app
