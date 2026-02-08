@@ -44,7 +44,6 @@ const addReminder = asyncHandler(async (req, res) => {
     await reminder.save();
   }
 
-  // 🤖 Risk prediction for UPCOMING dose
   let risk = 0.5;
   try {
     const t = new Date(time);
@@ -55,7 +54,6 @@ const addReminder = asyncHandler(async (req, res) => {
     );
   } catch (e) {}
 
-  // 🔔 Add pre-reminder if high risk
   await createPreReminderIfHighRisk(reminder, risk);
 
   res.status(201).json(
@@ -219,7 +217,6 @@ const handleMissedReminder = async (reminderId) => {
     );
   } catch (e) {}
 
-  // ⏰ Reschedule AFTER (safe)
     await createPreReminderIfHighRisk(reminder, risk);
 
   let newTime =
@@ -234,11 +231,10 @@ const handleMissedReminder = async (reminderId) => {
   reminder.userResponseTime = null;
   await reminder.save();
 
-  // 📊 Save analytics
   const safeRisk =
   typeof risk === "number" && !Number.isNaN(risk)
     ? Math.min(Math.max(risk, 0), 1)
-    : 0.5; // fallback
+    : 0.5; 
 
   await AIAnalytics.findOneAndUpdate(
     { userId: reminder.userId, medicineId: reminder.medicineId },
@@ -249,7 +245,6 @@ const handleMissedReminder = async (reminderId) => {
     { upsert: true }
   );
 
-  // 🔔 Apply pre-reminders to FUTURE doses
   await applyPreReminderToFutureDoses(
     reminder.userId,
     reminder.medicineId,
