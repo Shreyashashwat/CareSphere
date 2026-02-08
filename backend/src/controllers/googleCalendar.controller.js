@@ -9,7 +9,6 @@ export const getWebsiteGoogleEvents = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1️⃣ Find user's calendar tokens
     const calendarData = await Calendar.findOne({ userId });
     if (!calendarData) {
       return res.status(400).json({ message: "No Google Calendar linked" });
@@ -35,7 +34,6 @@ export const getWebsiteGoogleEvents = async (req, res) => {
 
     const calendar = google.calendar({ version: "v3", auth });
 
-    // 4️⃣ Fetch all your website-created events by eventId
     const events = [];
     for (const r of reminders) {
       try {
