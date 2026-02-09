@@ -10,7 +10,7 @@ dotenv.config({ path: "./.env" });
 
 
 cron.schedule("0 0 * * 0", async () => {
-console.log("📊 Weekly retraining job started...");
+  console.log("📊 Weekly retraining job started...");
   try {
     await trainAdherenceModel();
     console.log("✅ Model retraining complete!");
@@ -29,19 +29,21 @@ cron.schedule("0 0 * * 0", async () => {
 });
 connectDB()
   .then(async () => {
-    console.log("🟢 MongoDB connected, starting one-time ML training...");
+    console.log("🟢 MongoDB connected");
 
-    // 🔥 TEMPORARY: run training once
-    await trainAdherenceModel()
-    await generateWeeklyInsightsForAllUsers()
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => {
       console.log(`✅ Server is running at ${PORT}`);
-    //   await trainAdherenceModel();
       sendnoti();
 
- 
-      
+      // Run ML training and insights generation in the background (non-blocking)
+      console.log("🔄 Starting background ML training and insights generation...");
+      Promise.all([
+        trainAdherenceModel().catch(err => console.error("❌ ML training failed:", err)),
+        generateWeeklyInsightsForAllUsers().catch(err => console.error("❌ Insights generation failed:", err))
+      ]).then(() => {
+        console.log("✅ Background tasks completed");
+      });
     });
   })
   .catch((err) => {
