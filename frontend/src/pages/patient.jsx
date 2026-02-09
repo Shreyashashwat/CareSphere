@@ -291,6 +291,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { generateStatsReport } from '../utils/reportGenerator';
 
 import MedicineList from "../components/MedicineList";
 import MedicineForm from "../components/MedicineForm";
@@ -353,6 +354,30 @@ const Patient = () => {
     } catch (err) {
       console.error("Failed to fetch medicines:", err);
     }
+  };
+
+  const handleDownloadReport = () => {
+    const statsData = {
+      totalMedicines: medicines.length,
+      takenCount: history.filter(h => h.status === "taken").length,
+      missedCount: history.filter(h => h.status === "missed").length,
+      adherenceRate: history.length > 0
+        ? Math.round((history.filter(h => h.status === "taken").length / history.length) * 100)
+        : 0,
+      medicineStats: medicines.map(med => {
+        const medHistory = history.filter(h => h.medicineId?._id === med._id || h.medicineId === med._id);
+        const taken = medHistory.filter(h => h.status === "taken").length;
+        const total = medHistory.length;
+        return {
+          name: med.medicineName,
+          taken,
+          total,
+          adherenceRate: total > 0 ? Math.round((taken / total) * 100) : 0,
+        };
+      }),
+    };
+
+    generateStatsReport(statsData, username);
   };
 
   const fetchHistoryData = async () => {
@@ -487,8 +512,15 @@ const Patient = () => {
               💕 Family
             </button>
             <button
+              onClick={() => setActiveTab("stats")}
+              className={`px-4 py-2 rounded-full text-m font-medium transition cursor-pointer ${activeTab === "stats" ? "bg-emerald-500 text-white" : "text-emerald-600 hover:bg-emerald-50"
+                }`}
+            >
+              📊 Stats
+            </button>
+            <button
               onClick={() => setActiveTab("insights")}
-              className={`px-4 py-2 rounded-full text-m font-medium transition ${activeTab === "insights" ? "bg-indigo-600 text-white" : "text-indigo-600 hover:bg-indigo-100"
+              className={`px-4 py-2 rounded-full text-m font-medium transition cursor-pointer ${activeTab === "insights" ? "bg-indigo-600 text-white" : "text-indigo-600 hover:bg-indigo-100"
                 }`}
             >
               Health Insights
@@ -588,20 +620,10 @@ const Patient = () => {
             </div>
           </section>
 
-          {/* ANALYTICS & HISTORY */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-lg border border-gray-50">
-              <h3 className="font-bold text-gray-700 mb-4">Adherence Progress</h3>
-              <DashboardChart key={refreshTrigger} history={history} />
-            </div>
-            <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-lg border border-gray-50">
-              <h3 className="font-bold text-gray-700 mb-4">Medication Calendar</h3>
-              <CalendarView reminders={reminders} />
-            </div>
-            <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-lg border border-gray-50 overflow-y-auto max-h-[400px]">
-              <h3 className="font-bold text-gray-700 mb-4">Recent Activity</h3>
-              <HistoryTable history={history} />
-            </div>
+          {/* CALENDAR */}
+          <section className="bg-white p-6 rounded-3xl shadow-lg border border-gray-50">
+            <h3 className="font-bold text-gray-700 mb-4">📅 Medication Calendar</h3>
+            <CalendarView reminders={reminders} />
           </section>
         </main>
       ) : activeTab === "family" ? (
@@ -641,6 +663,102 @@ const Patient = () => {
               <div className="text-3xl mb-3">💌</div>
               <h3 className="font-bold text-rose-700 mb-2">Stay Connected</h3>
               <p className="text-sm text-gray-600">Keep loved ones in the loop about your wellness journey.</p>
+            </div>
+          </div>
+        </section>
+      ) : activeTab === "stats" ? (
+        /* STATS SECTION */
+        <section className="max-w-5xl mx-auto px-6 py-12 space-y-8">
+          {/* Header with Download Button */}
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-emerald-700">📊 Your Health Statistics</h2>
+            <button
+              onClick={handleDownloadReport}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition flex items-center gap-2 cursor-pointer"
+            >
+              📥 Download Report
+            </button>
+          </div>
+
+          {/* Quick Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg text-white text-center">
+              <div className="text-4xl font-bold">{medicines.length}</div>
+              <div className="text-sm mt-1 opacity-90">Active Medicines</div>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg text-white text-center">
+              <div className="text-4xl font-bold">{history.filter(h => h.status === "taken").length}</div>
+              <div className="text-sm mt-1 opacity-90">Doses Taken</div>
+            </div>
+            <div className="bg-gradient-to-br from-red-500 to-rose-600 p-6 rounded-2xl shadow-lg text-white text-center">
+              <div className="text-4xl font-bold">{history.filter(h => h.status === "missed").length}</div>
+              <div className="text-sm mt-1 opacity-90">Doses Missed</div>
+            </div>
+            <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white text-center">
+              <div className="text-4xl font-bold">
+                {history.length > 0 ? Math.round((history.filter(h => h.status === "taken").length / history.length) * 100) : 0}%
+              </div>
+              <div className="text-sm mt-1 opacity-90">Adherence Rate</div>
+            </div>
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-8 rounded-3xl shadow-xl border border-emerald-100">
+              <h2 className="text-xl font-semibold text-emerald-700 mb-4 flex items-center gap-2">
+                📈 Weekly Progress
+              </h2>
+              <DashboardChart key={refreshTrigger + "stats"} history={history} />
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-8 rounded-3xl shadow-xl border border-emerald-100">
+              <h2 className="text-xl font-semibold text-emerald-700 mb-4 flex items-center gap-2">
+                📋 Recent Activity
+              </h2>
+              <div className="max-h-80 overflow-y-auto">
+                <HistoryTable history={history.slice(-10).reverse()} />
+              </div>
+            </div>
+          </div>
+
+          {/* Medicine Stats */}
+          <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-8 rounded-3xl shadow-xl border border-emerald-100">
+            <h2 className="text-xl font-semibold text-emerald-700 mb-4 flex items-center gap-2">
+              💊 Medicine Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {medicines.map((med) => {
+                const medHistory = history.filter(h => h.medicineId?._id === med._id || h.medicineId === med._id);
+                const medTaken = medHistory.filter(h => h.status === "taken").length;
+                const medTotal = medHistory.length;
+                const medRate = medTotal > 0 ? Math.round((medTaken / medTotal) * 100) : 0;
+
+                return (
+                  <div key={med._id} className="bg-white rounded-xl p-4 shadow-md border border-emerald-100">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">{med.medicineName}</h3>
+                        <p className="text-xs text-gray-500">{med.dosage}</p>
+                      </div>
+                      <div className={`text-lg font-bold ${medRate >= 80 ? 'text-emerald-600' : medRate >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+                        {medRate}%
+                      </div>
+                    </div>
+                    <div className="mt-3 bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${medRate >= 80 ? 'bg-emerald-500' : medRate >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${medRate}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">{medTaken} of {medTotal} doses taken</p>
+                  </div>
+                );
+              })}
+              {medicines.length === 0 && (
+                <div className="col-span-full text-center py-8 text-gray-500">
+                  No medicines added yet. Go to Home tab to add medicines.
+                </div>
+              )}
             </div>
           </div>
         </section>
