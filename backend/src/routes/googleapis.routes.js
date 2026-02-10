@@ -24,6 +24,8 @@ router.get("/auth/google", (req, res) => {
       "email",
       "https://www.googleapis.com/auth/calendar"
     ],
+        redirect_uri: "http://localhost:8000/api/v1/oauth2callback",
+
     state: "login"
   });
 

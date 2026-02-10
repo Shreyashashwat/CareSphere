@@ -260,35 +260,126 @@ export const generateWeeklyInsightsForAllUsers = async () => {
 
   console.log("🏁 Weekly insights job finished");
 };
+// export const processUserWeeklyInsights = async (userId) => {
+//   console.log("🧠 processUserWeeklyInsights START", userId);
+
+//   const sevenDaysAgo = new Date();
+//   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+//   console.log("📅 Fetching data since:", sevenDaysAgo.toISOString());
+
+//   // ---------------- MEDICINE LOGS ----------------
+//   let medLogs;
+//   try {
+//     medLogs = await Medicine.find({
+//       user_id: userId,
+//       date: { $gte: sevenDaysAgo }
+//     });
+
+//     console.log(`💊 Medicine logs found: ${medLogs.length}`);
+//   } catch (err) {
+//     console.error("❌ Error fetching medicine logs:", err);
+//     throw err;
+//   }
+
+//   // ---------------- REMINDER LOGS ----------------
+//   let reminderLogs;
+//   try {
+//     reminderLogs = await Reminder.find({
+//       user_id: userId,
+//       date: { $gte: sevenDaysAgo }
+//     });
+
+//     console.log(`⏰ Reminder logs found: ${reminderLogs.length}`);
+//   } catch (err) {
+//     console.error("❌ Error fetching reminder logs:", err);
+//     throw err;
+//   }
+
+//   if (medLogs.length === 0) {
+//     console.log("⚠️ No medicine logs → skipping user");
+//     return;
+//   }
+
+//   console.log("📊 Aggregating weekly data");
+
+//   const total = medLogs.length;
+//   const taken = medLogs.filter(m => m.taken === true).length;
+//   const missed = total - taken;
+
+//   const adherence = total > 0
+//     ? Math.round((taken / total) * 100)
+//     : 0;
+
+//   const missedTimes = medLogs
+//     .filter(m => !m.taken && m.time_bucket)
+//     .map(m => m.time_bucket);
+
+//   const mostMissed =
+//     missedTimes.length > 0 ? missedTimes[0] : "none";
+
+//   console.log("📈 Aggregated values:", {
+//     total,
+//     taken,
+//     missed,
+//     adherence,
+//     mostMissed
+//   });
+
+//   const weeklySummary = {
+//     adherence_percentage: adherence,
+//     missed_doses: missed,
+//     most_missed_time: mostMissed
+//   };
+
+//   console.log("🧾 Weekly summary to send to LLM:", weeklySummary);
+
+//   // ---------------- LLM CALL ----------------
+//   let llmResponse;
+//   try {
+//     llmResponse = await callLLM(weeklySummary);
+//     console.log("🤖 LLM raw response:", llmResponse);
+//   } catch (err) {
+//     console.error("❌ LLM call failed:", err.message);
+//     throw err;
+//   }
+
+//   if (!llmResponse || !Array.isArray(llmResponse.insights)) {
+//     console.error("❌ Invalid LLM response format:", llmResponse);
+//     throw new Error("Invalid LLM response");
+//   }
+
+//   // ---------------- SAVE TO DB ----------------
+//   try {
+//     const doc = await WeeklyInsight.create({
+//       user_id: userId,
+//       week: getWeekRange(),
+//       insights: llmResponse.insights
+//     });
+
+//     console.log("💾 WeeklyInsight saved:", doc._id);
+//   } catch (err) {
+//     console.error("❌ Failed to save WeeklyInsight:", err);
+//     throw err;
+//   }
+
+//   console.log("🎉 processUserWeeklyInsights COMPLETE", userId);
+// };
 export const processUserWeeklyInsights = async (userId) => {
   console.log("🧠 processUserWeeklyInsights START", userId);
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  console.log("📅 Fetching data since:", sevenDaysAgo.toISOString());
+  console.log("📅 Fetching reminder data since:", sevenDaysAgo.toISOString());
 
-  // ---------------- MEDICINE LOGS ----------------
-  let medLogs;
-  try {
-    medLogs = await Medicine.find({
-      user_id: userId,
-      date: { $gte: sevenDaysAgo }
-    });
-
-    console.log(`💊 Medicine logs found: ${medLogs.length}`);
-  } catch (err) {
-    console.error("❌ Error fetching medicine logs:", err);
-    throw err;
-  }
-
-  // ---------------- REMINDER LOGS ----------------
+  // ---------------- REMINDER LOGS (SOURCE OF TRUTH) ----------------
   let reminderLogs;
   try {
     reminderLogs = await Reminder.find({
-      user_id: userId,
-      date: { $gte: sevenDaysAgo }
-    });
+      userId: userId,
+      time: { $gte: sevenDaysAgo }
+    }).populate("medicineId");
 
     console.log(`⏰ Reminder logs found: ${reminderLogs.length}`);
   } catch (err) {
@@ -296,24 +387,21 @@ export const processUserWeeklyInsights = async (userId) => {
     throw err;
   }
 
-  if (medLogs.length === 0) {
-    console.log("⚠️ No medicine logs → skipping user");
+  if (reminderLogs.length === 0) {
+    console.log("⚠️ No reminder logs → skipping user");
     return;
   }
 
-  console.log("📊 Aggregating weekly data");
+  // ---------------- AGGREGATION ----------------
+  const total = reminderLogs.length;
+  const taken = reminderLogs.filter(r => r.status === "taken").length;
+  const missed = reminderLogs.filter(r => r.status === "missed").length;
 
-  const total = medLogs.length;
-  const taken = medLogs.filter(m => m.taken === true).length;
-  const missed = total - taken;
+  const adherence = Math.round((taken / total) * 100);
 
-  const adherence = total > 0
-    ? Math.round((taken / total) * 100)
-    : 0;
-
-  const missedTimes = medLogs
-    .filter(m => !m.taken && m.time_bucket)
-    .map(m => m.time_bucket);
+  const missedTimes = reminderLogs
+    .filter(r => r.status === "missed")
+    .map(r => r.time);
 
   const mostMissed =
     missedTimes.length > 0 ? missedTimes[0] : "none";
@@ -345,14 +433,13 @@ export const processUserWeeklyInsights = async (userId) => {
   }
 
   if (!llmResponse || !Array.isArray(llmResponse.insights)) {
-    console.error("❌ Invalid LLM response format:", llmResponse);
     throw new Error("Invalid LLM response");
   }
 
   // ---------------- SAVE TO DB ----------------
   try {
     const doc = await WeeklyInsight.create({
-      user_id: userId,
+      userId: userId,
       week: getWeekRange(),
       insights: llmResponse.insights
     });
