@@ -291,12 +291,16 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { generateStatsReport } from '../utils/reportGenerator';
 
 import MedicineList from "../components/MedicineList";
 import MedicineForm from "../components/MedicineForm";
 import HistoryTable from "../components/HistoryTable";
 import CalendarView from "../components/CalendarView";
 import DashboardChart from "../components/DashboardChart";
+import CaregiverList from "../components/CaregiverList";
+
+import AlertsView from "../components/Caregiver/AlertsView";
 
 import {
   getMedicines,
@@ -351,6 +355,30 @@ const Patient = () => {
     } catch (err) {
       console.error("Failed to fetch medicines:", err);
     }
+  };
+
+  const handleDownloadReport = () => {
+    const statsData = {
+      totalMedicines: medicines.length,
+      takenCount: history.filter(h => h.status === "taken").length,
+      missedCount: history.filter(h => h.status === "missed").length,
+      adherenceRate: history.length > 0
+        ? Math.round((history.filter(h => h.status === "taken").length / history.length) * 100)
+        : 0,
+      medicineStats: medicines.map(med => {
+        const medHistory = history.filter(h => h.medicineId?._id === med._id || h.medicineId === med._id);
+        const taken = medHistory.filter(h => h.status === "taken").length;
+        const total = medHistory.length;
+        return {
+          name: med.medicineName,
+          taken,
+          total,
+          adherenceRate: total > 0 ? Math.round((taken / total) * 100) : 0,
+        };
+      }),
+    };
+
+    generateStatsReport(statsData, username);
   };
 
   const fetchHistoryData = async () => {
@@ -506,6 +534,20 @@ const Patient = () => {
             >
               🧠 Insights
             </button>
+                        <button
+              onClick={() => setActiveTab("family")}
+              className={`px-4 py-2 rounded-full text-m font-medium transition ${activeTab === "family" ? "bg-rose-500 text-white" : "text-rose-500 hover:bg-rose-50"
+                }`}
+            >
+              💕 Family
+            </button>
+            <button
+              onClick={() => setActiveTab("stats")}
+              className={`px-4 py-2 rounded-full text-m font-medium transition cursor-pointer ${activeTab === "stats" ? "bg-emerald-500 text-white" : "text-emerald-600 hover:bg-emerald-50"
+                }`}
+            >
+              📊 Stats
+            </button>
           </div>
           
           <button
@@ -516,6 +558,40 @@ const Patient = () => {
           </button>
         </div>
       </header>
+
+  {/* return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
+      {/* HEADER */}
+      {/* <header className="sticky top-0 z-50 bg-white/70 backdrop-blur shadow">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
+          <h1 className="text-3xl font-extrabold text-indigo-700">
+            Care<span className="text-blue-500">Sphere</span>
+          </h1>
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setActiveTab("home")}
+              className={`px-4 py-2 rounded-full text-m font-medium transition ${activeTab === "home" ? "bg-indigo-600 text-white" : "text-indigo-600 hover:bg-indigo-100"
+                }`}
+            >
+              Home
+            </button>
+
+            <button
+              onClick={() => setActiveTab("insights")}
+              className={`px-4 py-2 rounded-full text-m font-medium transition cursor-pointer ${activeTab === "insights" ? "bg-indigo-600 text-white" : "text-indigo-600 hover:bg-indigo-100"
+                }`}
+            >
+              Health Insights
+            </button>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow transition-all duration-300 hover:scale-105"
+          >
+            Logout
+          </button>
+        </div> */}
+      {/* </header> */} 
 
       {/* ENHANCED WELCOME BANNER */}
       <section className="max-w-7xl mx-auto px-6 py-6 mt-6">
