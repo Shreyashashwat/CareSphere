@@ -10,6 +10,7 @@ import { Calendar } from "../model/calendar.model.js";
 import { summarization } from "@huggingface/inference";
 import { AIAnalytics } from "../model/alAnalytics.model.js";
 import { predictAdherenceRisk } from "../ml/predict.js";
+
 const addReminder = asyncHandler(async (req, res) => {
   const { medicineId, time, status } = req.body;
   const userId = req.user.id;
@@ -52,7 +53,7 @@ const addReminder = asyncHandler(async (req, res) => {
       t.getDay(),
       0
     );
-  } catch (e) {}
+  } catch (e) { }
 
   await createPreReminderIfHighRisk(reminder, risk);
 
@@ -94,7 +95,7 @@ const getReminders = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
 
-const reminders = await Reminder.find({ userId })
+  const reminders = await Reminder.find({ userId })
     .populate("medicineId", ["medicineName", "dosage", "frequency"])
     .sort({ time: 1 });
 
@@ -111,7 +112,7 @@ const deleteReminder = asyncHandler(async (req, res) => {
 
   await reminder.deleteOne();
 
- 
+
   await Medicine.updateOne(
     { _id: reminder.medicineId },
     { $pull: { statusHistory: reminder._id } }
@@ -133,6 +134,10 @@ const markasTaken = asyncHandler(async (req, res) => {
   reminder.status = "taken";
   reminder.userResponseTime = new Date();
   await reminder.save();
+
+
+
+
 
   medicine.takenCount += 1;
   medicine.status = "taken";
@@ -194,6 +199,8 @@ const markasMissed = asyncHandler(async (req, res) => {
   medicine.status = "missed";
   await medicine.save();
 
+
+
   await handleMissedReminder(reminder._id);
 
   res.status(200).json(
@@ -215,16 +222,16 @@ const handleMissedReminder = async (reminderId) => {
       scheduledTime.getDay(),
       delay
     );
-  } catch (e) {}
+  } catch (e) { }
 
-    await createPreReminderIfHighRisk(reminder, risk);
+  await createPreReminderIfHighRisk(reminder, risk);
 
   let newTime =
     risk > 0.75
       ? new Date(scheduledTime.getTime() + 30 * 60000)
       : risk > 0.5
-      ? new Date(scheduledTime.getTime() + 15 * 60000)
-      : suggestNextTime(scheduledTime);
+        ? new Date(scheduledTime.getTime() + 15 * 60000)
+        : suggestNextTime(scheduledTime);
 
   reminder.time = newTime;
   reminder.status = "pending";
@@ -232,9 +239,9 @@ const handleMissedReminder = async (reminderId) => {
   await reminder.save();
 
   const safeRisk =
-  typeof risk === "number" && !Number.isNaN(risk)
-    ? Math.min(Math.max(risk, 0), 1)
-    : 0.5; 
+    typeof risk === "number" && !Number.isNaN(risk)
+      ? Math.min(Math.max(risk, 0), 1)
+      : 0.5;
 
   await AIAnalytics.findOneAndUpdate(
     { userId: reminder.userId, medicineId: reminder.medicineId },
@@ -308,4 +315,4 @@ const learnAndShiftHabit = async (userId, medicineId) => {
   }
 };
 
-export { addReminder, updateReminderStatus, getReminders, deleteReminder ,markasTaken,markasMissed,createPreReminderIfHighRisk,applyPreReminderToFutureDoses,handleMissedReminder,learnAndShiftHabit};
+export { addReminder, updateReminderStatus, getReminders, deleteReminder, markasTaken, markasMissed, createPreReminderIfHighRisk, applyPreReminderToFutureDoses, handleMissedReminder, learnAndShiftHabit };
