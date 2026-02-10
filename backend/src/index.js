@@ -3,10 +3,13 @@ import connectDB from "./db/index.js";
 import app from "./app.js";
 import { sendnoti } from "./firebase/SendNotification.js";
 import cron from "node-cron";
+
 import { User } from "./model/user.model.js";
 import { trainAdherenceModel } from "./ml/train.js";
 import { generateWeeklyInsightsForAllUsers } from "./controllers/user.controller.js";
 dotenv.config({ path: "./.env" });
+
+
 
 
 cron.schedule("0 0 * * 0", async () => {
