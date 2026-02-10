@@ -20,9 +20,30 @@ const userSchema = new Schema(
             lowercase: true,
         },
         password: {
-            type: String,
-            required: [true, "Password is required"],
-        },
+  type: String,
+  required: function () {
+    return !this.hasGoogleAccount;
+  },
+},
+hasGoogleAccount: {
+  type: Boolean,
+  default: false,
+},
+
+    //     age: {
+    //         type: Number,
+    //         required: true,
+    //         min: 0,
+    //         max: 120,
+    //     },
+    //     gender: {
+    //         type: String,
+    //         enum: ["Male", "Female", "Other"],
+    //         required: true,
+    //     // },
+
+
+    // },
     age:{
         type:Number,
         required:true,
@@ -43,10 +64,10 @@ const userSchema = new Schema(
     refresh_token: { type: String }, 
     expiry_date: { type: Number }
 },
-hasGoogleAccount: {
-  type: Boolean,
-  default: false,
-},
+// hasGoogleAccount: {
+//   type: Boolean,
+//   default: false,
+// },
     doctorCode: {
       type: String,
       required: true, 
