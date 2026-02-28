@@ -48,7 +48,7 @@ const Patient = () => {
   // -------------------- FETCHERS --------------------
   const fetchWeeklyInsights = async () => {
     try {
-      const res = await fetch(`http://localhost:3000/api/weekly-insights/${user._id}`);
+      const res = await fetch(`http://localhost:8000/api/weekly-insights/${user._id}`);
       const data = await res.json();
       setWeeklyInsights(data?.insights || []);
     } catch (err) {
@@ -210,103 +210,106 @@ const Patient = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* ENHANCED HEADER */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm border-b border-indigo-100">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-              <span className="text-white text-xl font-bold">C</span>
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl shadow-md border-b border-indigo-100">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-8 py-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+              <span className="text-white text-2xl font-extrabold">C</span>
             </div>
-            <h1 className="text-2xl font-black bg-gradient-to-r from-indigo-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-700 to-blue-600 bg-clip-text text-transparent tracking-tight">
               CareSphere
             </h1>
           </div>
           
-          <div className="flex gap-2 items-center bg-gray-100 p-1.5 rounded-2xl">
+          <div className="flex flex-wrap gap-2 items-center bg-gradient-to-r from-gray-50 to-gray-100 p-2 rounded-2xl shadow-inner">
             <button
               onClick={() => setActiveTab("home")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
                 activeTab === "home" 
-                  ? "bg-white text-indigo-700 shadow-md" 
-                  : "text-gray-600 hover:text-indigo-600"
+                  ? "bg-white text-indigo-700 shadow-lg" 
+                  : "text-gray-600 hover:text-indigo-600 hover:bg-white/50"
               }`}
             >
               🏠 Home
             </button>
             <button
+              onClick={() => setActiveTab("history")}
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
+                activeTab === "history" 
+                  ? "bg-white text-blue-700 shadow-lg" 
+                  : "text-gray-600 hover:text-blue-600 hover:bg-white/50"
+              }`}
+            >
+              📋 History
+            </button>
+            <button
               onClick={() => setActiveTab("insights")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
                 activeTab === "insights" 
-                  ? "bg-white text-indigo-700 shadow-md" 
-                  : "text-gray-600 hover:text-indigo-600"
+                  ? "bg-white text-purple-700 shadow-lg" 
+                  : "text-gray-600 hover:text-purple-600 hover:bg-white/50"
               }`}
             >
               🧠 Insights
             </button>
             <button
               onClick={() => setActiveTab("family")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
                 activeTab === "family" 
-                  ? "bg-white text-rose-700 shadow-md" 
-                  : "text-gray-600 hover:text-rose-600"
+                  ? "bg-white text-rose-700 shadow-lg" 
+                  : "text-gray-600 hover:text-rose-600 hover:bg-white/50"
               }`}
             >
               💕 Family
             </button>
             <button
               onClick={() => setActiveTab("stats")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
                 activeTab === "stats" 
-                  ? "bg-white text-emerald-700 shadow-md" 
-                  : "text-gray-600 hover:text-emerald-600"
+                  ? "bg-white text-emerald-700 shadow-lg" 
+                  : "text-gray-600 hover:text-emerald-600 hover:bg-white/50"
               }`}
             >
               📊 Stats
             </button>
           </div>
-          
-          <button
-            onClick={handleLogout}
-            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all duration-300 hover:scale-105"
-          >
-            Sign Out
-          </button>
         </div>
       </header>
 
       {/* ENHANCED WELCOME BANNER */}
-      <section className="max-w-7xl mx-auto px-6 py-6 mt-6">
-        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-white rounded-3xl shadow-2xl shadow-indigo-200/50 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-20 translate-x-20"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-20 -translate-x-20"></div>
+      <section className="max-w-7xl mx-auto px-8 py-8 mt-8">
+        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-white rounded-[2rem] shadow-2xl shadow-indigo-300/50 overflow-hidden relative animate-fadeIn">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-24 translate-x-24"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
           
-          <div className="relative p-8 md:p-10">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="relative px-10 py-12 md:px-12 md:py-14">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-4xl">👋</span>
-                  <h2 className="text-3xl md:text-4xl font-black">Welcome back, {username}!</h2>
+                <div className="flex items-center gap-4 mb-3">
+                  <span className="text-5xl">👋</span>
+                  <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Welcome back, {username}!</h2>
                 </div>
-                <p className="text-indigo-100 text-lg">Let's keep you healthy today</p>
+                <p className="text-indigo-100 text-xl font-medium tracking-wide">Let's keep you healthy today</p>
               </div>
               
-              <div className="flex flex-wrap gap-4">
-                <div className="bg-white/10 backdrop-blur-sm px-6 py-4 rounded-2xl border border-white/20">
-                  <div className="text-sm text-indigo-100 mb-1">Adherence Rate</div>
-                  <div className="text-3xl font-black">{adherenceRate}%</div>
+              <div className="flex flex-wrap gap-5">
+                <div className="bg-white/10 backdrop-blur-sm px-7 py-5 rounded-2xl border-2 border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="text-sm font-bold text-indigo-100 mb-2 uppercase tracking-wider">Adherence Rate</div>
+                  <div className="text-4xl font-black">{adherenceRate}%</div>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm px-6 py-4 rounded-2xl border border-white/20">
-                  <div className="text-sm text-indigo-100 mb-1">Today's Reminders</div>
-                  <div className="text-3xl font-black">{todayReminders}</div>
+                <div className="bg-white/10 backdrop-blur-sm px-7 py-5 rounded-2xl border-2 border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <div className="text-sm font-bold text-indigo-100 mb-2 uppercase tracking-wider">Today's Reminders</div>
+                  <div className="text-4xl font-black">{todayReminders}</div>
                 </div>
               </div>
             </div>
             
-            <div className="mt-6 bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/20">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">⏰</span>
+            <div className="mt-8 bg-white/10 backdrop-blur-sm p-6 rounded-2xl border-2 border-white/20 hover:bg-white/15 transition-all duration-300">
+              <div className="flex items-center gap-4">
+                <span className="text-3xl">⏰</span>
                 <div>
-                  <div className="text-xs text-indigo-100 uppercase tracking-wider font-bold">Next Reminder</div>
-                  <div className="text-lg font-semibold">
+                  <div className="text-xs text-indigo-100 uppercase tracking-[0.15em] font-extrabold mb-1">Next Reminder</div>
+                  <div className="text-xl font-bold tracking-wide">
                     {nextReminder
                       ? `${new Date(nextReminder.time).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -408,25 +411,11 @@ const Patient = () => {
 
           {/* MEDICINE MANAGEMENT - ENHANCED */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                  ➕
-                </div>
-                <h2 className="text-2xl font-black text-gray-800">
-                  {selectedMedicine ? "Edit Medication" : "Add New Medication"}
-                </h2>
-              </div>
+            <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 animate-fadeIn hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
               <MedicineForm onSuccess={handleMedicineUpdate} medicine={selectedMedicine} />
             </div>
             
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                  💊
-                </div>
-                <h2 className="text-2xl font-black text-gray-800">Current Medications</h2>
-              </div>
+            <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100 animate-fadeIn hover:shadow-2xl transition-all duration-300 hover:-translate-y-1" style={{animationDelay: '0.1s'}}>
               <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 <MedicineList
                   medicines={medicines}
@@ -438,45 +427,156 @@ const Patient = () => {
             </div>
           </section>
 
-          {/* ANALYTICS DASHBOARD - ENHANCED */}
-          <section className="space-y-6">
-            {/* Google Calendar - Full Row */}
-            <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                  📅
-                </div>
-                <h3 className="font-black text-gray-800">Medication Calendar</h3>
-              </div>
+          {/* CALENDAR SECTION - ENHANCED */}
+          <section>
+            <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 animate-fadeIn hover:shadow-2xl transition-all duration-300" style={{animationDelay: '0.2s'}}>
               <CalendarView reminders={reminders} />
-            </div>
-            
-            {/* Chart and History - Second Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                    📊
-                  </div>
-                  <h3 className="font-black text-gray-800">Adherence Progress</h3>
-                </div>
-                <DashboardChart key={refreshTrigger} history={history} />
-              </div>
-              
-              <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                    📋
-                  </div>
-                  <h3 className="font-black text-gray-800">Recent Activity</h3>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  <HistoryTable history={history} />
-                </div>
-              </div>
             </div>
           </section>
         </main>
+        
+      ) : activeTab === "history" ? (
+        /* MEDICATION HISTORY SECTION - ENHANCED */
+        <section className="max-w-7xl mx-auto px-6 py-8 space-y-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl border-2 border-blue-100 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-6 border-b border-blue-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-2xl">
+                    📋
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Medication History</h2>
+                    <p className="text-xs sm:text-sm text-blue-100 mt-1">Complete record of all medication activities</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
+                    <div className="text-xs text-blue-100 font-semibold">Total Records</div>
+                    <div className="text-xl font-black text-white">{history.length}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-50 px-6 py-4 border-b border-blue-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">✅</span>
+                    <span className="text-xs font-bold text-gray-600 uppercase">Taken</span>
+                  </div>
+                  <div className="text-2xl font-black text-emerald-600">
+                    {history.filter(h => h.status === "taken").length}
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">⚠️</span>
+                    <span className="text-xs font-bold text-gray-600 uppercase">Missed</span>
+                  </div>
+                  <div className="text-2xl font-black text-red-600">
+                    {history.filter(h => h.status === "missed").length}
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">💊</span>
+                    <span className="text-xs font-bold text-gray-600 uppercase">Medicines</span>
+                  </div>
+                  <div className="text-2xl font-black text-indigo-600">
+                    {medicines.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* History Table */}
+            <div className="p-6">
+              {history.length > 0 ? (
+                <div className="overflow-hidden rounded-2xl border-2 border-blue-100 bg-gradient-to-br from-white to-blue-50/30">
+                  <HistoryTable history={history} />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-4xl">📊</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">No History Yet</h3>
+                  <p className="text-gray-500 text-sm max-w-md text-center">
+                    Your medication history will appear here once you start taking your medicines.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Additional Insights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-2xl shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">🎯</span>
+                <h3 className="font-bold text-sm uppercase tracking-wide">Best Day</h3>
+              </div>
+              <p className="text-2xl font-black">
+                {history.length > 0 ? 
+                  new Date(
+                    Object.entries(
+                      history.reduce((acc, h) => {
+                        if (h.status === 'taken') {
+                          const day = new Date(h.time).toLocaleDateString('en-US', { weekday: 'long' });
+                          acc[day] = (acc[day] || 0) + 1;
+                        }
+                        return acc;
+                      }, {})
+                    ).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'
+                  ) : 'N/A'
+                }
+              </p>
+              <p className="text-xs text-emerald-100 mt-1">Most consistent day</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-2xl shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">🔥</span>
+                <h3 className="font-bold text-sm uppercase tracking-wide">Current Streak</h3>
+              </div>
+              <p className="text-2xl font-black">
+                {(() => {
+                  const sorted = [...history].sort((a, b) => new Date(b.time) - new Date(a.time));
+                  let streak = 0;
+                  for (const h of sorted) {
+                    if (h.status === 'taken') streak++;
+                    else break;
+                  }
+                  return streak;
+                })()}
+              </p>
+              <p className="text-xs text-blue-100 mt-1">Consecutive doses taken</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 text-white p-6 rounded-2xl shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">⏰</span>
+                <h3 className="font-bold text-sm uppercase tracking-wide">Next Dose</h3>
+              </div>
+              <p className="text-lg font-black">
+                {nextReminder ? (
+                  <>
+                    {new Date(nextReminder.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </>
+                ) : (
+                  'None'
+                )}
+              </p>
+              <p className="text-xs text-purple-100 mt-1">
+                {nextReminder ? nextReminder.medicineId?.medicineName : 'No upcoming reminders'}
+              </p>
+            </div>
+          </div>
+        </section>
         
       ) : activeTab === "family" ? (
         /* FAMILY CIRCLE - FROM SECOND FILE */
