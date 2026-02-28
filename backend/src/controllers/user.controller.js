@@ -374,18 +374,23 @@ export const processUserWeeklyInsights = async (userId) => {
 
   // ---------------- SAVE TO DB ----------------
   try {
-    const doc = await WeeklyInsight.create({
-      userId: userId,
-      week: getWeekRange(),
-      insights: llmResponse.insights,
-      metadata: {
-        adherence_percentage: adherence,
-        total_doses: total,
-        taken_doses: taken,
-        missed_doses: missed,
-        most_missed_time: mostMissedTime
+        const doc = await WeeklyInsight.findOneAndUpdate(
+      {
+        user_id: userId,
+        week: getWeekRange()
+      },
+      {
+        insights: llmResponse.insights,
+        created_at: new Date()  // Update timestamp on regeneration
+      },
+      {
+        upsert: true,  // Create if doesn't exist
+        new: true,     // Return the updated document
+        setDefaultsOnInsert: true
       }
-    });
+    );
+    
+
 
     console.log("💾 WeeklyInsight saved:", doc._id);
   } catch (err) {
@@ -396,3 +401,35 @@ export const processUserWeeklyInsights = async (userId) => {
   console.log("🎉 processUserWeeklyInsights COMPLETE", userId);
 };
 
+// GET endpoint to fetch weekly insights for a user
+export const getUserWeeklyInsights = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const insights = await WeeklyInsight.find({ user_id: userId })
+      .sort({ created_at: -1 })
+      .limit(10); // Get last 10 weeks
+    
+    // Return the most recent week's insights
+    if (insights.length > 0) {
+      return res.json({
+        success: true,
+        insights: insights[0].insights, // Return the insights array from the most recent document
+        week: insights[0].week,
+        created_at: insights[0].created_at
+      });
+    }
+    
+    return res.json({
+      success: true,
+      insights: []
+    });
+    
+  } catch (error) {
+    console.error('Error fetching weekly insights:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch insights' 
+    });
+  }
+};
