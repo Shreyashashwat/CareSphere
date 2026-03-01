@@ -21,13 +21,12 @@ def make_appointment_tools(token: str):
                 return "No doctors are currently available in the system."
 
             lines = []
-            for d in doctors:
-                lines.append(
-                    f"- Dr. {d.get('username')} | "
-                    f"Email: {d.get('email')} | "
-                    f"Doctor ID: {d.get('_id')}"
-                )
-            return "Available doctors:\n" + "\n".join(lines)
+            for i, d in enumerate(doctors, 1):
+              spec = d.get('specialization') or 'General Physician'
+              exp = d.get('experience')
+              exp_text = f" | {exp} yrs experience" if exp else ""
+              lines.append(f"{i}. Dr. {d.get('username').title()} — {spec}{exp_text} | ID: {d.get('_id')}")
+            return "DOCTORS_LIST:\n" + "\n".join(lines)
 
         except Exception as e:
             return f"Error fetching doctors: {str(e)}"
@@ -114,6 +113,14 @@ def make_appointment_tools(token: str):
             return "Missing required fields: doctorId, appointmentDate, and problem are all required."
 
         try:
+            from datetime import datetime
+            try:
+                appt_dt = datetime.fromisoformat(appointmentDate)
+                if appt_dt < datetime.now():
+                 return "⚠️ The appointment date you provided is in the past. Please provide a future date."
+            except  ValueError:
+                return "⚠️ Invalid date format. Please use a format like '2026-03-20T10:00:00'."
+        
             result = api_post(
                 "/api/v1/doctor-request/createAppointment",
                 token,
@@ -124,8 +131,15 @@ def make_appointment_tools(token: str):
                 }
             )
             appt = result.get("data", {})
+            doctor_field = appt.get("doctorId", {})
+            confirmed_name = (
+            doctor_field.get("username") if isinstance(doctor_field, dict) else None
+            ) or "your doctor"
+
+
             return (
                 f"✅ Appointment booked successfully!\n"
+                f"  👨‍⚕️ Doctor: Dr. {confirmed_name}\n"
                 f"  📅 Date: {appt.get('appointmentDate', appointmentDate)}\n"
                 f"  📋 Reason: {appt.get('problem', problem)}\n"
                 f"  Status: PENDING — waiting for doctor confirmation."
