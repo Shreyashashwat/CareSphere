@@ -14,6 +14,6 @@ const reminderStatusSchema = new mongoose.Schema({
   
   userResponseTime: { type: Date },
    eventId: { type: String },
-
+  autoAdjusted: { type: Boolean, default: false },
 });
 export const Reminder=mongoose.model("Reminder",reminderStatusSchema)
