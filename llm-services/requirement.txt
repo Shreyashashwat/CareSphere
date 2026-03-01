@@ -3,4 +3,7 @@ uvicorn
 pydantic
 python-dotenv
 langchain
-langchain-google-genai
+langchain-classic
+langchain-groq
+langchain-core
+requests

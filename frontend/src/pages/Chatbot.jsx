@@ -6,6 +6,7 @@ function ChatWidget() {
   const [inputText, setInputText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
   const messagesEndRef = useRef(null);
 
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -19,19 +20,27 @@ function ChatWidget() {
   const toggleChat = () => setIsOpen((prev) => !prev);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
-
+    if (!inputText.trim()) return;
+  
     const userMessage = { from: "user", text: inputText };
     setMessages((msgs) => [...msgs, userMessage]);
+    const currentInput = inputText;
     setInputText("");
-    setIsLoading(true);
-
+    setIsLoading(true);   
+    
+    const historyForAgent = chatHistory.slice(-6).map((m) => ({
+      role: m.from === "user" ? "user" : "assistant",
+      content: m.text,
+    }));
+  
     try {
-      console.log("Sending message with token:", authToken);
-
       const resp = await axios.post(
         "http://localhost:8000/api/v1/chatbot",
-        { userId, message: inputText },
+        {
+          userId,
+          message: currentInput,
+          chat_history: historyForAgent,   
+        },
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -39,18 +48,24 @@ function ChatWidget() {
           },
         }
       );
-
+  
       const botReply = resp.data.reply;
-      setMessages((msgs) => [...msgs, { from: "bot", text: botReply }]);
+      const botMessage = { from: "bot", text: botReply };
+      setMessages((msgs) => [...msgs, botMessage]);
+  
+      
+      setChatHistory((prev) => [...prev, userMessage, botMessage]);
+  
     } catch (err) {
       console.error("Chat API error:", err);
       setMessages((msgs) => [
         ...msgs,
         { from: "bot", text: "⚠️ Sorry, something went wrong. Please try again." },
       ]);
-    } finally {
-      setIsLoading(false);
+    }finally {
+      setIsLoading(false);  
     }
+  
   };
 
   const handleKeyPress = (e) => {

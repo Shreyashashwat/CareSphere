@@ -13,7 +13,7 @@ import doctorPatientRoutes from "./routes/doctorPatient.routes.js";
 import mlRoutes from "./routes/ml.routes.js"
 import { createRemindersCron } from "./firebase/remindercreationfile.js"
 import { sendnoti } from "./firebase/SendNotification.js"
-
+import agentDataRoutes from "./routes/agentData.routes.js"
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -46,6 +46,7 @@ app.use("/api/v1/save-token", saveNotificationToken)
 app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
 app.use("/api/v1", doctorPatientRoutes);
+app.use("/api/v1", agentDataRoutes);
 // In your routes file
 app.use("/api", mlRoutes);
 sendnoti()
