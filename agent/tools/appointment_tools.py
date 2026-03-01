@@ -99,4 +99,38 @@ def make_appointment_tools(token: str):
         except Exception as e:
             return f"Error fetching upcoming appointment: {str(e)}"
 
+    @tool
+    def book_appointment(doctorId: str, appointmentDate: str, problem: str) -> str:
+        """
+        Book an appointment with a doctor on behalf of the user.
+        Always call get_available_doctors first to get the correct doctorId.
+        Args:
+            doctorId: the doctor's MongoDB ID from get_available_doctors
+            appointmentDate: ISO datetime string e.g. "2026-03-20T10:00:00"
+            problem: reason for visit e.g. "chest pain", "routine checkup"
+        Only call this when the user has confirmed the details.
+        """
+        if not doctorId or not appointmentDate or not problem:
+            return "Missing required fields: doctorId, appointmentDate, and problem are all required."
 
+        try:
+            result = api_post(
+                "/api/v1/doctor-request/createAppointment",
+                token,
+                {
+                    "doctorId":        doctorId,
+                    "appointmentDate": appointmentDate,
+                    "problem":         problem,
+                }
+            )
+            appt = result.get("data", {})
+            return (
+                f"✅ Appointment booked successfully!\n"
+                f"  📅 Date: {appt.get('appointmentDate', appointmentDate)}\n"
+                f"  📋 Reason: {appt.get('problem', problem)}\n"
+                f"  Status: PENDING — waiting for doctor confirmation."
+            )
+        except Exception as e:
+            return f"Error booking appointment: {str(e)}"
+
+    return [get_available_doctors, get_all_appointments, get_upcoming_appointment, book_appointment]
