@@ -6,23 +6,32 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { getDashboardStats } from "../api";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const DashboardChart = () => {
- 
-  const [stats, setStats] = useState({ taken: 12, missed: 5 });
+const DashboardChart = ({ refreshTrigger }) => {
+  const [stats, setStats] = useState({ taken: 0, missed: 0 });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const { data } = await getDashboardStats();
+      setStats({
+        taken: data.data.taken || 0,
+        missed: data.data.missed || 0,
+      });
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+      setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setStats({
-        taken: Math.floor(Math.random() * 20),
-        missed: Math.floor(Math.random() * 10),
-      });
-    }, 5000); 
-    return () => clearInterval(timer);
-  }, []);
+    fetchStats();
+  }, [refreshTrigger]);
 
   const data = {
     labels: ["Taken", "Missed"],
