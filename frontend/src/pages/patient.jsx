@@ -18,6 +18,7 @@ import {
   sendDoctorRequest,
   getPatientRequests,
   createAppointment,
+  getDoctorAppointments,
 } from "../api";
 
 const Patient = () => {
@@ -36,6 +37,10 @@ const Patient = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [weeklyInsights, setWeeklyInsights] = useState([]);
+
+  // My Doctor tab
+  const [appointments, setAppointments] = useState([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
 
   // Appointment States
   const [showAptModal, setShowAptModal] = useState(false);
@@ -251,6 +256,18 @@ const fetchHistoryData = async () => {
     }
   };
 
+  const fetchAppointments = async () => {
+    setLoadingAppointments(true);
+    try {
+      const res = await getDoctorAppointments();
+      setAppointments(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error("Failed to fetch appointments:", err);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  };
+
   const fetchPatientRequests = async () => {
     try {
       const res = await getPatientRequests();
@@ -271,6 +288,7 @@ const fetchHistoryData = async () => {
 
   useEffect(() => {
     if (activeTab === "insights") fetchWeeklyInsights();
+    if (activeTab === "myDoctor") fetchAppointments();
   }, [activeTab]);
 
   useEffect(() => {
@@ -503,6 +521,16 @@ const fetchHistoryData = async () => {
               💕 Family
             </button>
             <button
+              onClick={() => setActiveTab("myDoctor")}
+              className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
+                activeTab === "myDoctor" 
+                  ? "bg-white text-teal-700 shadow-lg" 
+                  : "text-gray-600 hover:text-teal-600 hover:bg-white/50"
+              }`}
+            >
+              🩺 My Doctor
+            </button>
+            <button
               onClick={() => setActiveTab("stats")}
               className={`px-5 sm:px-7 py-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 ${
                 activeTab === "stats" 
@@ -566,89 +594,6 @@ const fetchHistoryData = async () => {
 
       {activeTab === "home" ? (
         <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-          {/* DOCTOR NETWORK - ENHANCED */}
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
-                  <span className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                    🩺
-                  </span>
-                  Healthcare Network
-                </h2>
-                <p className="text-gray-500 text-sm mt-1 ml-13">Connect with professionals and schedule appointments</p>
-              </div>
-            </div>
-            
-            {loadingDoctors ? (
-              <div className="flex justify-center p-20">
-                <div className="relative">
-                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-100 border-t-indigo-600"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-full animate-pulse"></div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {doctors.map((doc) => {
-                  const status = getRequestStatus(doc._id);
-                  return (
-                    <div 
-                      key={doc._id} 
-                      className="group bg-white p-6 rounded-3xl shadow-md hover:shadow-2xl border border-gray-100 transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className="flex items-start gap-4 mb-5">
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300">
-                          👨‍⚕️
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-black text-lg text-gray-800 mb-1">{doc.username}</h3>
-                          <p className="text-sm text-gray-500">{doc.email}</p>
-                        </div>
-                      </div>
-                      
-                      {status === "ACCEPTED" ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs text-emerald-600 font-bold mb-3">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Connected
-                          </div>
-                          <button
-                            onClick={() => { setAptDoctor(doc); setShowAptModal(true); }}
-                            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2"
-                          >
-                            <span className="text-lg">📅</span>
-                            Book Appointment
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          disabled={status === "PENDING"}
-                          onClick={() => handleSendRequest(doc._id)}
-                          className={`w-full py-3.5 rounded-2xl font-bold transition-all duration-300 ${
-                            status === "PENDING" 
-                              ? "bg-yellow-50 text-yellow-700 border-2 border-yellow-200 cursor-not-allowed" 
-                              : "bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-[1.02]"
-                          }`}
-                        >
-                          {status === "PENDING" ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                              Connection Pending
-                            </span>
-                          ) : (
-                            "Connect with Doctor"
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
           {/* MEDICINE MANAGEMENT - ENHANCED */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 animate-fadeIn hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -675,6 +620,173 @@ const fetchHistoryData = async () => {
           </section>
         </main>
         
+      ) : activeTab === "myDoctor" ? (
+        /* MY DOCTOR TAB */
+        <main className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+
+          {/* HEALTHCARE NETWORK */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center text-xl shadow-lg">🩺</span>
+                  Healthcare Network
+                </h2>
+                <p className="text-gray-500 text-sm mt-1 ml-13">Connect with professionals and schedule appointments</p>
+              </div>
+            </div>
+
+            {loadingDoctors ? (
+              <div className="flex justify-center p-20">
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-100 border-t-indigo-600"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 bg-indigo-600 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {doctors.map((doc) => {
+                  const status = getRequestStatus(doc._id);
+                  return (
+                    <div
+                      key={doc._id}
+                      className="group bg-white p-6 rounded-3xl shadow-md hover:shadow-2xl border border-gray-100 transition-all duration-300 hover:-translate-y-1"
+                    >
+                      <div className="flex items-start gap-4 mb-5">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300">
+                          👨‍⚕️
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-black text-lg text-gray-800 mb-1">{doc.username}</h3>
+                          <p className="text-sm text-gray-500">{doc.email}</p>
+                        </div>
+                      </div>
+
+                      {status === "ACCEPTED" ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs text-emerald-600 font-bold mb-3">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Connected
+                          </div>
+                          <button
+                            onClick={() => { setAptDoctor(doc); setShowAptModal(true); }}
+                            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-bold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2"
+                          >
+                            <span className="text-lg">📅</span>
+                            Book Appointment
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={status === "PENDING"}
+                          onClick={() => handleSendRequest(doc._id)}
+                          className={`w-full py-3.5 rounded-2xl font-bold transition-all duration-300 ${
+                            status === "PENDING"
+                              ? "bg-yellow-50 text-yellow-700 border-2 border-yellow-200 cursor-not-allowed"
+                              : "bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-[1.02]"
+                          }`}
+                        >
+                          {status === "PENDING" ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                              Connection Pending
+                            </span>
+                          ) : (
+                            "Connect with Doctor"
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* MY APPOINTMENTS */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center text-xl shadow-lg">📅</span>
+                  My Appointments
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">Track your scheduled and past appointments</p>
+              </div>
+              <button
+                onClick={fetchAppointments}
+                className="px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+              >
+                🔄 Refresh
+              </button>
+            </div>
+
+            {loadingAppointments ? (
+              <div className="flex justify-center p-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-100 border-t-indigo-600"></div>
+              </div>
+            ) : appointments.length === 0 ? (
+              <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-16 text-center shadow-sm">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl">📭</div>
+                <h3 className="text-lg font-bold text-gray-700 mb-1">No Appointments Yet</h3>
+                <p className="text-gray-400 text-sm">Connect with a doctor above and book your first appointment.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {appointments.map((apt) => {
+                  const statusColors = {
+                    pending:  { bg: "bg-yellow-50",  text: "text-yellow-700",  border: "border-yellow-200",  dot: "bg-yellow-400",  label: "⏳ Pending"   },
+                    accepted: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "✅ Confirmed" },
+                    rejected: { bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200",     dot: "bg-red-500",    label: "❌ Declined"  },
+                    completed:{ bg: "bg-blue-50",    text: "text-blue-700",    border: "border-blue-200",    dot: "bg-blue-500",   label: "🏁 Completed" },
+                  };
+                  const s = statusColors[apt.status?.toLowerCase()] || statusColors.pending;
+                  const aptDate = new Date(apt.appointmentDate);
+                  return (
+                    <div key={apt._id} className="bg-white rounded-3xl shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+                      {/* Card top stripe */}
+                      <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 to-blue-500" />
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center text-2xl">👨‍⚕️</div>
+                            <div>
+                              <p className="font-black text-gray-800">{apt.doctorId?.username || "Doctor"}</p>
+                              <p className="text-xs text-gray-400">{apt.doctorId?.email || ""}</p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-xl border ${s.bg} ${s.text} ${s.border}`}>
+                            {s.label}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span>🗓</span>
+                            <span className="font-semibold">{aptDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span>🕐</span>
+                            <span className="font-semibold">{aptDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                          {apt.problem && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">Reason</p>
+                              <p className="text-sm text-gray-700">{apt.problem}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </main>
+
       ) : activeTab === "history" ? (
         /* MEDICATION HISTORY SECTION - ENHANCED */
         <section className="max-w-7xl mx-auto px-4 py-8 space-y-6 animate-fadeIn">
