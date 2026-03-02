@@ -9,6 +9,7 @@ import CalendarView from "../components/CalendarView";
 import DashboardChart from "../components/DashboardChart";
 import CaregiverList from "../components/CaregiverList";
 import AlertsView from "../components/Caregiver/AlertsView";
+import ConnectedFamilyHealth from "../components/ConnectedFamilyHealth";
 
 import {
   getMedicines,
@@ -1059,6 +1060,18 @@ const fetchHistoryData = async () => {
           {/* My Family Circle Section */}
           <div className="bg-white rounded-3xl shadow-xl border border-rose-100 p-8">
             <CaregiverList />
+          </div>
+
+          {/* Connected Family Health Reports */}
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-pink-500 rounded-xl flex items-center justify-center text-xl shadow-lg">❤️</div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-800">Family Health Reports</h2>
+                <p className="text-gray-500 text-sm mt-0.5">Live medication adherence for your connected family members</p>
+              </div>
+            </div>
+            <ConnectedFamilyHealth />
           </div>
 
           {/* Family Benefits Info */}
