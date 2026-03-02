@@ -288,7 +288,7 @@ const fetchHistoryData = async () => {
 
   useEffect(() => {
     if (activeTab === "insights") fetchWeeklyInsights();
-    if (activeTab === "myDoctor") fetchAppointments();
+    if (activeTab === "myDoctor") { fetchAppointments(); fetchReminders(); }
   }, [activeTab]);
 
   useEffect(() => {
@@ -784,6 +784,110 @@ const fetchHistoryData = async () => {
                 })}
               </div>
             )}
+          </section>
+
+          {/* UPCOMING APPOINTMENTS */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+                  <span className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center text-xl shadow-lg">🗓</span>
+                  Upcoming Appointments
+                </h2>
+                <p className="text-gray-500 text-sm mt-1 ml-13">Your next scheduled visits with doctors</p>
+              </div>
+              <button
+                onClick={fetchAppointments}
+                className="px-4 py-2 text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-xl transition-colors"
+              >
+                🔄 Refresh
+              </button>
+            </div>
+
+            {loadingAppointments ? (
+              <div className="flex justify-center p-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-violet-100 border-t-violet-500" />
+              </div>
+            ) : (() => {
+              const now = new Date();
+              const upcomingApts = appointments
+                .filter(a => new Date(a.appointmentDate) >= now && a.status?.toLowerCase() === 'accepted')
+                .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
+
+              if (upcomingApts.length === 0) return (
+                <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center shadow-sm">
+                  <div className="w-16 h-16 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">📭</div>
+                  <h3 className="text-lg font-bold text-gray-700 mb-1">No upcoming appointments</h3>
+                  <p className="text-gray-400 text-sm">No confirmed appointments yet. Book and get approved by a doctor.</p>
+                </div>
+              );
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {upcomingApts.map((apt) => {
+                    const aptDate = new Date(apt.appointmentDate);
+                    const now2 = new Date();
+                    const diffMs = aptDate - now2;
+                    const diffDays = Math.floor(diffMs / 86400000);
+                    const diffHrs  = Math.floor(diffMs / 3600000);
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const countdown = diffDays >= 1 ? `in ${diffDays}d` : diffHrs >= 1 ? `in ${diffHrs}h` : `in ${diffMins}m`;
+
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+                    const rd = new Date(aptDate); rd.setHours(0,0,0,0);
+                    const dayLabel = rd.getTime() === today.getTime() ? 'Today'
+                      : rd.getTime() === tomorrow.getTime() ? 'Tomorrow'
+                      : aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+                    const accentBar  = 'from-emerald-400 to-teal-500';
+                    const dayBadge   = diffDays === 0 ? 'bg-red-50 text-red-600 border-red-200'
+                      : diffDays <= 2 ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-violet-50 text-violet-700 border-violet-200';
+
+                    return (
+                      <div key={apt._id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-violet-200 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden">
+                        <div className={`h-1 w-full bg-gradient-to-r ${accentBar}`} />
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">👨‍⚕️</div>
+                              <div className="min-w-0">
+                                <p className="font-black text-gray-800 text-sm truncate">{apt.doctorId?.username || 'Doctor'}</p>
+                                <p className="text-[11px] text-gray-400 truncate">{apt.doctorId?.email || ''}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-black px-2.5 py-1 rounded-xl border flex-shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200">
+                              ✅ Confirmed
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <span>🗓</span>
+                                <span className="text-sm font-bold">{dayLabel}</span>
+                              </div>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${dayBadge}`}>{countdown}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <span>🕐</span>
+                              <span className="text-sm font-semibold">{aptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            {apt.problem && (
+                              <div className="mt-2 p-2.5 bg-gray-50 rounded-xl">
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">Reason</p>
+                                <p className="text-xs text-gray-600 line-clamp-2">{apt.problem}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
         </main>
 
