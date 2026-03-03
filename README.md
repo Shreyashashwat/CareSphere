@@ -1,7 +1,8 @@
-# CareSphere
+# 🏥 CareSphere - AI-Powered Healthcare Management Platform
 
-A web-based application designed to help users *manage their medicine schedules, receive **timely reminders, and track **dose adherence* efficiently.  
-Built with modern web technologies, it supports *AI-based adherence prediction, **chatbot assistance, and **Google Calendar integration* for an intelligent and seamless healthcare experience.
+> **🏆 Built for Hackathon Excellence**
+
+**CareSphere** is a comprehensive, AI-driven healthcare management platform that revolutionizes medication adherence and patient care through intelligent automation, predictive analytics, and seamless integration with modern healthcare workflows.
 
 ---
 

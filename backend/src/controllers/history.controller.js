@@ -1,12 +1,11 @@
+// import { Reminder } from "../model/reminder.model.js"; // Update path if needed
+import { Medicine } from "../model/medicine.model.js";
+import { Reminder } from "../model/reminderstatus.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
-import { Medicine } from "../model/medicine.model.js";
 
-/**
- * Get medication history with flexible filtering
- * Query params: days (default: 7), limit, status
- */
+
 const getHistory = asyncHandler(async (req, res) => {
   const userId = req.user?._id || req.user?.id;
   
@@ -14,92 +13,66 @@ const getHistory = asyncHandler(async (req, res) => {
     throw new ApiError(400, "User ID is missing");
   }
 
-  // Get query parameters with defaults
-  const days = parseInt(req.query.days) || 7; // Default 7 days
-  const limit = parseInt(req.query.limit) || 100; // Max 100 records
-  const statusFilter = req.query.status; // 'taken', 'missed', 'snoozed'
-
-  // Calculate start date
+  const now = new Date();
+  const days = parseInt(req.query.days) || 7;
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
-  startDate.setHours(0, 0, 0, 0); // Start of day
+  startDate.setHours(0, 0, 0, 0);
 
-  console.log(`📅 Fetching history from ${startDate.toISOString()} (${days} days)`);
+  console.log(`📅 Fetching history for user ${userId} from ${startDate.toISOString()}`);
 
-  // Fetch medicines for this user
-  const medicines = await Medicine.find({ 
-    user_id: userId 
-  }).lean(); // Use lean() for better performance
+  // Only fetch reminders whose time has already passed
+  const reminders = await Reminder.find({
+    userId: userId,
+    time: { $gte: startDate, $lte: now },
+  })
+  .populate('medicineId', 'medicineName dosage frequency')
+  .sort({ time: -1 })
+  .lean();
 
-  if (!medicines || medicines.length === 0) {
-    return res.status(200).json(
-      new ApiResponse(200, [], "No medicines found for this user")
-    );
-  }
+  console.log(`📊 Found ${reminders.length} reminder records`);
 
-  // Build history from statusHistory embedded arrays
-  let history = [];
+  // Transform the data to match frontend expectations
+  const history = reminders.map(reminder => ({
+    _id: reminder._id,
+    historyId: reminder._id,
+    medicineId: reminder.medicineId,
+    medicineName: reminder.medicineId?.medicineName || 'Unknown Medicine',
+    dosage: reminder.medicineId?.dosage || '',
+    frequency: reminder.medicineId?.frequency || '',
+    time: reminder.time,
+    status: reminder.status, // pending, taken, missed
+    userResponseTime: reminder.userResponseTime,
+    delayMinutes: reminder.userResponseTime 
+      ? Math.round((new Date(reminder.userResponseTime) - new Date(reminder.time)) / 60000)
+      : null
+  }));
 
-  for (const med of medicines) {
-    if (!med.statusHistory || !Array.isArray(med.statusHistory)) {
-      continue;
-    }
+  // Calculate stats — exclude pending from adherence rate (not yet processed by cron)
+  const takenCount  = history.filter(h => h.status === 'taken').length;
+  const missedCount = history.filter(h => h.status === 'missed').length;
+  const pendingCount = history.filter(h => h.status === 'pending').length;
+  const resolvedCount = takenCount + missedCount;
 
-    const filteredHistory = med.statusHistory
-      .filter((status) => {
-        const statusDate = new Date(status.time);
-        const isInDateRange = statusDate >= startDate;
-        const matchesStatus = !statusFilter || status.status === statusFilter;
-        return isInDateRange && matchesStatus;
-      })
-      .map((status) => ({
-        historyId: status._id,
-        medicineId: med._id,
-        medicineName: med.medicineName,
-        dosage: med.dosage,
-        frequency: med.frequency,
-        time: status.time,
-        status: status.status,
-        userResponseTime: status.userResponseTime || null,
-        // Calculate delay if missed/taken late
-        delayMinutes: status.userResponseTime 
-          ? Math.round((new Date(status.userResponseTime) - new Date(status.time)) / 60000)
-          : null
-      }));
-
-    history = history.concat(filteredHistory);
-  }
-
-  // Sort by time (latest first)
-  history.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-  // Apply limit
-  const limitedHistory = history.slice(0, limit);
-
-  // Calculate statistics
   const stats = {
     total: history.length,
-    taken: history.filter(h => h.status === 'taken').length,
-    missed: history.filter(h => h.status === 'missed').length,
-    snoozed: history.filter(h => h.status === 'snoozed').length,
-    adherenceRate: history.length > 0 
-      ? Math.round((history.filter(h => h.status === 'taken').length / history.length) * 100)
+    taken: takenCount,
+    missed: missedCount,
+    pending: pendingCount,
+    adherenceRate: resolvedCount > 0
+      ? Math.round((takenCount / resolvedCount) * 100)
       : 0
   };
 
-  console.log(`✅ Returning ${limitedHistory.length} records (${stats.adherenceRate}% adherence)`);
+  console.log(`✅ Returning ${history.length} records (${stats.adherenceRate}% adherence)`);
+  console.log(`📊 Stats:`, stats);
 
   return res.status(200).json(
     new ApiResponse(
       200,
       {
-        history: limitedHistory,
-        stats,
-        filters: {
-          days,
-          status: statusFilter || 'all',
-          limit
-        }
+        data: history, // ✅ This matches what frontend expects
+        stats
       },
       `History fetched successfully`
     )

@@ -12,7 +12,7 @@ import { AIAnalytics } from "../model/alAnalytics.model.js";
 import { predictAdherenceRisk } from "../ml/predict.js";
 const addReminder = asyncHandler(async (req, res) => {
   const { medicineId, time, status } = req.body;
-  const userId = req.user;
+  const userId = req.user.id;
 
   if (!medicineId || !time)
     throw new ApiError(400, "Medicine ID and time are required");
@@ -44,7 +44,6 @@ const addReminder = asyncHandler(async (req, res) => {
     await reminder.save();
   }
 
-  // 🤖 Risk prediction for UPCOMING dose
   let risk = 0.5;
   try {
     const t = new Date(time);
@@ -55,7 +54,6 @@ const addReminder = asyncHandler(async (req, res) => {
     );
   } catch (e) {}
 
-  // 🔔 Add pre-reminder if high risk
   await createPreReminderIfHighRisk(reminder, risk);
 
   res.status(201).json(
@@ -64,9 +62,9 @@ const addReminder = asyncHandler(async (req, res) => {
 });
 
 const updateReminderStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params; 
+  const { id } = req.params;
   const { status } = req.body;
-  const userId = req.user;
+  const userId = req.user.id;
 
   if (!status || !["pending", "taken", "missed"].includes(status)) {
     throw new ApiError(400, "Invalid status");
@@ -106,7 +104,7 @@ const reminders = await Reminder.find({ userId })
 
 const deleteReminder = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user;
+  const userId = req.user.id;
 
   const reminder = await Reminder.findOne({ _id: id, userId });
   if (!reminder) throw new ApiError(404, "Reminder not found");
@@ -127,7 +125,7 @@ const markasTaken = asyncHandler(async (req, res) => {
 
   const reminder = await Reminder.findById(reminderId);
   if (!reminder) throw new ApiError(404, "Reminder not found");
- 
+
   const medicine = await Medicine.findById(reminder.medicineId);
   if (!medicine || medicine.userId.toString() !== userId)
     throw new ApiError(403, "Not authorized");
@@ -183,7 +181,7 @@ const markasMissed = asyncHandler(async (req, res) => {
 
   const reminder = await Reminder.findById(reminderId);
   if (!reminder) throw new ApiError(404, "Reminder not found");
- 
+
   const medicine = await Medicine.findById(reminder.medicineId);
   if (!medicine || medicine.userId.toString() !== userId)
     throw new ApiError(403, "Not authorized");
@@ -204,68 +202,25 @@ const markasMissed = asyncHandler(async (req, res) => {
 });
 const handleMissedReminder = async (reminderId) => {
   const reminder = await Reminder.findById(reminderId);
-  if (!reminder || reminder.status !== "missed") return;
+  if (!reminder) return;
 
-  const scheduledTime = new Date(reminder.time);
-  const delay =
-    (new Date(reminder.userResponseTime) - scheduledTime) / 60000;
+  // If already auto adjusted once → now mark permanently missed
+  if (reminder.autoAdjusted) {
+    reminder.status = "missed";
+    await reminder.save();
+    return;
+  }
 
-  let risk = 0.5;
-  try {
-    risk = await predictAdherenceRisk(
-      scheduledTime.getHours(),
-      scheduledTime.getDay(),
-      delay
-    );
-  } catch (e) {}
-
-  // ⏰ Reschedule AFTER (safe)
-    await createPreReminderIfHighRisk(reminder, risk);
-
-  let newTime =
-    risk > 0.75
-      ? new Date(scheduledTime.getTime() + 30 * 60000)
-      : risk > 0.5
-      ? new Date(scheduledTime.getTime() + 15 * 60000)
-      : suggestNextTime(scheduledTime);
+  // Otherwise allow one smart adjustment
+  const newTime = new Date(reminder.time.getTime() + 5 * 60000);
 
   reminder.time = newTime;
   reminder.status = "pending";
+  reminder.autoAdjusted = true;   // 🔥 important
   reminder.userResponseTime = null;
+
   await reminder.save();
-
-  // 📊 Save analytics
-  const safeRisk =
-  typeof risk === "number" && !Number.isNaN(risk)
-    ? Math.min(Math.max(risk, 0), 1)
-    : 0.5; // fallback
-
-  await AIAnalytics.findOneAndUpdate(
-    { userId: reminder.userId, medicineId: reminder.medicineId },
-    {
-      riskLevel: safeRisk,
-      lastAnalysis: new Date(),
-    },
-    { upsert: true }
-  );
-
-  // 🔔 Apply pre-reminders to FUTURE doses
-  await applyPreReminderToFutureDoses(
-    reminder.userId,
-    reminder.medicineId,
-    risk
-  );
-
-  const calendarData = await Calendar.findOne({ userId: reminder.userId });
-  if (calendarData) {
-    await updateMedicineInGoogleCalendar(
-      reminder,
-      calendarData,
-      newTime,
-      "Rescheduled ⏰ (AI-adjusted)"
-    );
-  }
-}
+};
 const applyPreReminderToFutureDoses = async (userId, medicineId, risk) => {
   if (risk <= 0.75) return;
 
@@ -288,7 +243,7 @@ const learnAndShiftHabit = async (userId, medicineId) => {
     userResponseTime: { $ne: null },
   })
     .sort({ userResponseTime: -1 })
-    .limit(1);
+    .limit(5);
 
   if (recent.length < 3) return;
 

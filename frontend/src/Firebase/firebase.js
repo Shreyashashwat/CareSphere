@@ -1,4 +1,4 @@
-// src/Firebase/firebase.js
+// C:\Users\HP\Desktop\coding\CareSphere\frontend\src\Firebase\firebase.js
 import { initializeApp } from "firebase/app";
 import { getMessaging } from "firebase/messaging";
 

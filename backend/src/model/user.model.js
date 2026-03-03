@@ -1,7 +1,7 @@
-import  mongoose from "mongoose"
-const {Schema}=mongoose
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
+import mongoose from "mongoose";
+const { Schema } = mongoose;
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
@@ -42,12 +42,8 @@ hasGoogleAccount: {
     //         required: true,
     //     // },
 
-    },
-    password:{
-         type:String,
-         required:[true,"Password is required"],
 
-    },
+    // },
     age:{
         type:Number,
         required:true,
@@ -65,41 +61,70 @@ hasGoogleAccount: {
     },
     googleTokens: {
     access_token: { type: String },
-    refresh_token: { type: String }, // optional, if you ever want offline access
+    refresh_token: { type: String }, 
     expiry_date: { type: Number }
 },
-
+// hasGoogleAccount: {
+//   type: Boolean,
+//   default: false,
+// },
+    doctorCode: {
+      type: String,
+      required: true, 
+      unique: true, 
+      uppercase: true, 
+      trim: true,
     },
-    //     fcmToken: {
-    //         type: String,
-    //         default: null,
-    //     },
-    // },
+     role:{
+        type:String,
+        default:"user",
+    },
+        age: {
+            type: Number,
+            required: true,
+            min: 0,
+            max: 120,
+        },
+        gender: {
+            type: String,
+            enum: ["Male", "Female", "Other"],
+            required: true,
+        },
+        doctorCode: {
+            type: String,
+            default: null,
+        },
+
+
+
+        fcmToken: {
+            type: String,
+            default: null,
+        },
+    },
     {
         timestamps: true,
     }
 );
 
-},{
-    timestamps:true,
-})
-userSchema.pre("save", async function(next){
-    if(this.isModified("password")){
-        this.password= await bcrypt.hash(this.password,10)
+userSchema.pre("save", async function (next) {
+    if (this.isModified("password")) {
+        this.password = await bcrypt.hash(this.password, 10);
     }
-     next();
-    
-})
-userSchema.methods.isPasswordCorrect=async function (password) {
-    return await bcrypt.compare(password,this.password)
-    
-}
+    next();
+});
+
+userSchema.methods.isPasswordCorrect = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
 
 userSchema.methods.generateToken = function () {
-  return jwt.sign(
-    { id: this._id, email: this.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+    return jwt.sign(
+        { id: this._id, email: this.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+    );
 };
-export const User=mongoose.model("User",userSchema)
+
+export const User = mongoose.model("User", userSchema);
+
