@@ -5,6 +5,7 @@ import userRouters from "./routes/user.routes.js"
 import medicineRoutes from "./routes/medicine.routes.js"
 import reminderRoutes from "./routes/reminder.routes.js"
 import chatbotRoute from "./routes/chatbot.routes.js"
+import agentDataRoutes from "./routes/agentData.routes.js"
 import saveNotificationToken from "./firebase/routes.js"
 import caregiverRoutes from "./routes/caregiver.routes.js"
 import googleAuth from "./routes/googleapis.routes.js"
@@ -46,6 +47,7 @@ app.use("/api/v1/save-token", saveNotificationToken)
 app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
 app.use("/api/v1", doctorPatientRoutes);
+app.use("/api/v1", agentDataRoutes);
 // In your routes file
 app.use("/api", mlRoutes);
 sendnoti()

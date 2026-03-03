@@ -4,7 +4,6 @@ import { User } from "../model/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import Doctor from "../model/doctor.js";
-
 import { Medicine } from "../model/medicine.model.js";
 import { Reminder } from "../model/reminderstatus.js";
 import { callLLM } from "./llm.controller.js";
@@ -92,17 +91,36 @@ const registerUser1 = asyncHandler(async (req, res) => {
   console.log("yes noo")
   const { username, email, password, age, gender ,doctorCode} = req.body;
 
+  // DOCTOR REGISTRATION
+  if (role === "doctor") {
+    if ([username, email, password, doctorCode].some((field) => field?.trim() === "")) {
+      throw new ApiError(400, "All fields (Username, Email, Password, Code) are required for Doctors");
+    }
+
+    const existedDoctor = await Doctor.findOne({
+      $or: [{ username }, { email }, { code: doctorCode }],
+    });
+
+    if (existedDoctor) {
+      throw new ApiError(409, "Doctor with these credentials already exists");
+    }
+
+    const doctor = new Doctor({ username, email, password, code: doctorCode, role: "doctor" });
+    await doctor.save();
+    const createdDoctor = await Doctor.findById(doctor._id).select("-password");
+
+    return res.status(201).json(new ApiResponse(201, createdDoctor, "Doctor registered successfully"));
+  }
+
+  // USER REGISTRATION
   if ([username, email, password, gender].some((field) => field?.trim() === "") || !age) {
     throw new ApiError(400, "All fields are required");
   }
 
-  if (!email.includes("@")) {
-    throw new ApiError(400, "Invalid email format");
-  }
+  if (!email.includes("@")) throw new ApiError(400, "Invalid email format");
 
-  const existedUser = await User.findOne({
-    $or: [{ username }, { email }],
-  });
+  const existedUser = await User.findOne({ $or: [{ username }, { email }] });
+  if (existedUser) throw new ApiError(409, "User already registered");
 
   if (existedUser) {
     throw new ApiError(400, "User already registered");
@@ -112,14 +130,9 @@ const registerUser1 = asyncHandler(async (req, res) => {
   await user.save();
 
   const createdUser = await User.findById(user._id).select("-password");
+  if (!createdUser) throw new ApiError(500, "Something went wrong while creating user");
 
-  if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while creating user");
-  }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, createdUser, "User registered successfully"));
+  return res.status(201).json(new ApiResponse(201, createdUser, "User registered successfully"));
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -179,35 +192,43 @@ const loginUser1 = asyncHandler(async (req, res) => {
 
   if (!email || !password) throw new ApiError(400, "Email and password are required");
 
-  const user = await User.findOne({ email });
-  if (!user) throw new ApiError(404, "User not found");
+  let user;
+  let modelType;
+
+  if (role === "doctor") {
+    user = await Doctor.findOne({ email });
+    modelType = "doctor";
+  } else {
+    user = await User.findOne({ email });
+    modelType = "user";
+  }
+
+  if (!user) throw new ApiError(404, `${role === "doctor" ? "Doctor" : "User"} not found`);
 
   const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) throw new ApiError(401, "Incorrect password");
 
- 
   const token = jwt.sign(
-    { _id: user._id, username: user.username, email: user.email },
+    { _id: user._id, email: user.email, username: user.username, role: modelType },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" } 
+    { expiresIn: "7d" }
   );
   // console.log("hgffd");
   console.log("Generated Token:", token);
 
-  const loggedInUser = await User.findById(user._id).select("-password");
+  const loggedInUser =
+    role === "doctor"
+      ? await Doctor.findById(user._id).select("-password")
+      : await User.findById(user._id).select("-password");
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, { user: loggedInUser, token }, "Logged in successfully")
-    );
+  return res.status(200).json(
+    new ApiResponse(200, { user: loggedInUser, token }, `${role === "doctor" ? "Doctor" : "User"} logged in successfully`)
+  );
 });
 
 
 const logOut = asyncHandler(async (req, res) => {
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "User logged out successfully"));
+  return res.status(200).json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
 

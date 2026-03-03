@@ -7,9 +7,17 @@ import { updateMedicineInGoogleCalendar } from "../utils/googleCalendar.js";
 import { addMedicineToGoogleCalendar } from "../utils/googleCalendar.js";
 import { suggestNextTime } from "../utils/schedulerLogic.js";
 import { Calendar } from "../model/calendar.model.js";
-import { summarization } from "@huggingface/inference";
 import { AIAnalytics } from "../model/alAnalytics.model.js";
-import { predictAdherenceRisk } from "../ml/predict.js";
+
+
+let predictAdherenceRisk = async () => 0.5;
+try {
+  const ml = await import("../ml/predict.js");
+  predictAdherenceRisk = ml.predictAdherenceRisk;
+} catch (e) {
+  console.warn("⚠️ ML predictor unavailable, using default risk 0.5");
+}
+
 const addReminder = asyncHandler(async (req, res) => {
   const { medicineId, time, status } = req.body;
   const userId = req.user.id;
@@ -32,27 +40,25 @@ const addReminder = asyncHandler(async (req, res) => {
   medicine.statusHistory.push(reminder._id);
   await medicine.save();
 
-  // 📅 Calendar sync
-  const calendarData = await Calendar.findOne({ userId });
-  if (calendarData) {
-    const eventId = await addMedicineToGoogleCalendar(
-      calendarData,
-      medicine,
-      time
-    );
-    reminder.eventId = eventId;
-    await reminder.save();
+  try {
+    const calendarData = await Calendar.findOne({ userId });
+    if (calendarData) {
+      const eventId = await addMedicineToGoogleCalendar(calendarData, medicine, time);
+      reminder.eventId = eventId;
+      await reminder.save();
+    }
+  } catch (calErr) {
+    console.warn("⚠️ Calendar sync skipped for reminder:", calErr.message);
   }
 
   let risk = 0.5;
   try {
     const t = new Date(time);
-    risk = await predictAdherenceRisk(
-      t.getHours(),
-      t.getDay(),
-      0
-    );
-  } catch (e) {}
+    const risk = await predictAdherenceRisk(t.getHours(), t.getDay(), 0);
+    await createPreReminderIfHighRisk(reminder, risk);
+  } catch (e) {
+    console.warn("⚠️ ML risk prediction skipped:", e.message);
+  }
 
   await createPreReminderIfHighRisk(reminder, risk);
 
@@ -60,6 +66,7 @@ const addReminder = asyncHandler(async (req, res) => {
     new ApiResponse(201, reminder, "Reminder created successfully")
   );
 });
+
 
 const updateReminderStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -71,30 +78,22 @@ const updateReminderStatus = asyncHandler(async (req, res) => {
   }
 
   const reminder = await Reminder.findOne({ _id: id, userId });
-  if (!reminder) {
-    throw new ApiError(404, "Reminder not found or unauthorized");
-  }
+  if (!reminder) throw new ApiError(404, "Reminder not found or unauthorized");
 
   reminder.status = status;
-
   if (status === "taken" || status === "missed") {
     reminder.userResponseTime = new Date();
   }
-
   await reminder.save();
 
-  return res.status(200).json(
-    new ApiResponse(200, reminder, "Reminder status updated")
-  );
+  return res.status(200).json(new ApiResponse(200, reminder, "Reminder status updated"));
 });
 
 
-
 const getReminders = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user._id || req.user.id;
 
-
-const reminders = await Reminder.find({ userId })
+  const reminders = await Reminder.find({ userId })
     .populate("medicineId", ["medicineName", "dosage", "frequency"])
     .sort({ time: 1 });
 
@@ -110,8 +109,6 @@ const deleteReminder = asyncHandler(async (req, res) => {
   if (!reminder) throw new ApiError(404, "Reminder not found");
 
   await reminder.deleteOne();
-
- 
   await Medicine.updateOne(
     { _id: reminder.medicineId },
     { $pull: { statusHistory: reminder._id } }
@@ -119,15 +116,17 @@ const deleteReminder = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(200, {}, "Reminder deleted successfully"));
 });
+
+
 const markasTaken = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user._id || req.user.id;
   const { reminderId } = req.params;
 
   const reminder = await Reminder.findById(reminderId);
   if (!reminder) throw new ApiError(404, "Reminder not found");
 
   const medicine = await Medicine.findById(reminder.medicineId);
-  if (!medicine || medicine.userId.toString() !== userId)
+  if (!medicine || medicine.userId.toString() !== userId.toString())
     throw new ApiError(403, "Not authorized");
 
   reminder.status = "taken";
@@ -135,25 +134,55 @@ const markasTaken = asyncHandler(async (req, res) => {
   await reminder.save();
 
   medicine.takenCount += 1;
-  medicine.status = "taken";
   await medicine.save();
 
-  await learnAndShiftHabit(userId, reminder.medicineId);
-
-  const calendarData = await Calendar.findOne({ userId });
-  if (calendarData) {
-    await updateMedicineInGoogleCalendar(
-      reminder,
-      calendarData,
-      reminder.time,
-      "Taken ✅"
-    );
+  try {
+    await learnAndShiftHabit(userId, reminder.medicineId);
+  } catch (e) {
+    console.warn("⚠️ learnAndShiftHabit skipped:", e.message);
   }
 
-  res.status(200).json(
-    new ApiResponse(200, reminder, "Medicine marked as taken")
-  );
+  try {
+    const calendarData = await Calendar.findOne({ userId });
+    if (calendarData) {
+      await updateMedicineInGoogleCalendar(reminder, calendarData, reminder.time, "Taken ✅");
+    }
+  } catch (calErr) {
+    console.warn("⚠️ Calendar update skipped:", calErr.message);
+  }
+
+  res.status(200).json(new ApiResponse(200, reminder, "Medicine marked as taken"));
 });
+
+
+const markasMissed = asyncHandler(async (req, res) => {
+  const userId = req.user._id || req.user.id;
+  const { reminderId } = req.params;
+
+  const reminder = await Reminder.findById(reminderId);
+  if (!reminder) throw new ApiError(404, "Reminder not found");
+
+  const medicine = await Medicine.findById(reminder.medicineId);
+  if (!medicine || medicine.userId.toString() !== userId.toString())
+    throw new ApiError(403, "Not authorized");
+
+  reminder.status = "missed";
+  reminder.userResponseTime = new Date();
+  await reminder.save();
+
+  medicine.missedCount += 1;
+  await medicine.save();
+
+  try {
+    await handleMissedReminder(reminder._id);
+  } catch (e) {
+    console.warn("⚠️ handleMissedReminder skipped:", e.message);
+  }
+
+  res.status(200).json(new ApiResponse(200, reminder, "Medicine marked as missed"));
+});
+
+
 const createPreReminderIfHighRisk = async (reminder, risk) => {
   if (risk <= 0.75) return;
 
@@ -174,32 +203,6 @@ const createPreReminderIfHighRisk = async (reminder, risk) => {
     status: "pending",
   });
 };
-
-const markasMissed = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const { reminderId } = req.params;
-
-  const reminder = await Reminder.findById(reminderId);
-  if (!reminder) throw new ApiError(404, "Reminder not found");
-
-  const medicine = await Medicine.findById(reminder.medicineId);
-  if (!medicine || medicine.userId.toString() !== userId)
-    throw new ApiError(403, "Not authorized");
-
-  reminder.status = "missed";
-  reminder.userResponseTime = new Date();
-  await reminder.save();
-
-  medicine.missedCount += 1;
-  medicine.status = "missed";
-  await medicine.save();
-
-  await handleMissedReminder(reminder._id);
-
-  res.status(200).json(
-    new ApiResponse(200, reminder, "Medicine marked as missed")
-  );
-});
 const handleMissedReminder = async (reminderId) => {
   const reminder = await Reminder.findById(reminderId);
   if (!reminder) return;
@@ -225,16 +228,15 @@ const applyPreReminderToFutureDoses = async (userId, medicineId, risk) => {
   if (risk <= 0.75) return;
 
   const futureReminders = await Reminder.find({
-    userId,
-    medicineId,
-    status: "pending",
-    time: { $gt: new Date() },
+    userId, medicineId, status: "pending", time: { $gt: new Date() },
   });
 
   for (const r of futureReminders) {
     await createPreReminderIfHighRisk(r, risk);
   }
 };
+
+
 const learnAndShiftHabit = async (userId, medicineId) => {
   const recent = await Reminder.find({
     userId,
@@ -247,19 +249,11 @@ const learnAndShiftHabit = async (userId, medicineId) => {
 
   if (recent.length < 3) return;
 
-  const avgDelay =
-    recent.reduce(
-      (s, r) => s + (r.userResponseTime - r.time),
-      0
-    ) / recent.length;
-
+  const avgDelay = recent.reduce((s, r) => s + (r.userResponseTime - r.time), 0) / recent.length;
   if (avgDelay < 15 * 60000) return;
 
   const future = await Reminder.find({
-    userId,
-    medicineId,
-    status: "pending",
-    time: { $gt: new Date() },
+    userId, medicineId, status: "pending", time: { $gt: new Date() },
   });
 
   for (const r of future) {
@@ -268,4 +262,9 @@ const learnAndShiftHabit = async (userId, medicineId) => {
   }
 };
 
-export { addReminder, updateReminderStatus, getReminders, deleteReminder ,markasTaken,markasMissed,createPreReminderIfHighRisk,applyPreReminderToFutureDoses,handleMissedReminder,learnAndShiftHabit};
+
+export {
+  addReminder, updateReminderStatus, getReminders, deleteReminder,
+  markasTaken, markasMissed, createPreReminderIfHighRisk,
+  applyPreReminderToFutureDoses, handleMissedReminder, learnAndShiftHabit
+};
