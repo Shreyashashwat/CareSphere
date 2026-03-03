@@ -39,12 +39,14 @@ const DashboardChart = ({ refreshTrigger }) => {
       {
         label: "Medicine Status",
         data: [stats.taken, stats.missed],
-        backgroundColor: ["#4ade80", "#f87171"], 
+        backgroundColor: ["#4ade80", "#f87171"],
         borderColor: ["#22c55e", "#ef4444"],
         borderWidth: 1,
       },
     ],
   };
+
+  if (loading) return <p className="text-center text-gray-500">Loading chart...</p>;
 
   return (
     <div className="w-full max-w-sm mx-auto p-6 bg-white rounded-3xl shadow-lg">

@@ -9,7 +9,7 @@ import { suggestNextTime } from "../utils/schedulerLogic.js";
 import { Calendar } from "../model/calendar.model.js";
 import { AIAnalytics } from "../model/alAnalytics.model.js";
 
-// Safely import ML predictor — never crash if unavailable
+
 let predictAdherenceRisk = async () => 0.5;
 try {
   const ml = await import("../ml/predict.js");
@@ -20,7 +20,7 @@ try {
 
 const addReminder = asyncHandler(async (req, res) => {
   const { medicineId, time, status } = req.body;
-  const userId = req.user._id || req.user.id;  // ✅ FIXED
+  const userId = req.user._id || req.user.id;
 
   if (!medicineId || !time)
     throw new ApiError(400, "Medicine ID and time are required");
@@ -40,7 +40,6 @@ const addReminder = asyncHandler(async (req, res) => {
   medicine.statusHistory.push(reminder._id);
   await medicine.save();
 
-
   try {
     const calendarData = await Calendar.findOne({ userId });
     if (calendarData) {
@@ -52,7 +51,7 @@ const addReminder = asyncHandler(async (req, res) => {
     console.warn("⚠️ Calendar sync skipped for reminder:", calErr.message);
   }
 
-
+ 
   try {
     const t = new Date(time);
     const risk = await predictAdherenceRisk(t.getHours(), t.getDay(), 0);
@@ -68,7 +67,7 @@ const addReminder = asyncHandler(async (req, res) => {
 const updateReminderStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  const userId = req.user._id || req.user.id;  
+  const userId = req.user._id || req.user.id;
 
   if (!status || !["pending", "taken", "missed"].includes(status)) {
     throw new ApiError(400, "Invalid status");
@@ -88,7 +87,7 @@ const updateReminderStatus = asyncHandler(async (req, res) => {
 
 
 const getReminders = asyncHandler(async (req, res) => {
-  const userId = req.user._id || req.user.id;  // ✅ FIXED
+  const userId = req.user._id || req.user.id;
 
   const reminders = await Reminder.find({ userId })
     .populate("medicineId", ["medicineName", "dosage", "frequency"])
@@ -100,7 +99,7 @@ const getReminders = asyncHandler(async (req, res) => {
 
 const deleteReminder = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user._id || req.user.id;  
+  const userId = req.user._id || req.user.id;
 
   const reminder = await Reminder.findOne({ _id: id, userId });
   if (!reminder) throw new ApiError(404, "Reminder not found");
@@ -116,7 +115,7 @@ const deleteReminder = asyncHandler(async (req, res) => {
 
 
 const markasTaken = asyncHandler(async (req, res) => {
-  const userId = req.user._id || req.user.id;  // ✅ FIXED
+  const userId = req.user._id || req.user.id;
   const { reminderId } = req.params;
 
   const reminder = await Reminder.findById(reminderId);
@@ -153,7 +152,7 @@ const markasTaken = asyncHandler(async (req, res) => {
 
 
 const markasMissed = asyncHandler(async (req, res) => {
-  const userId = req.user._id || req.user.id;  
+  const userId = req.user._id || req.user.id;
   const { reminderId } = req.params;
 
   const reminder = await Reminder.findById(reminderId);

@@ -8,6 +8,10 @@ import chatbotRoute from "./routes/chatbot.routes.js"
 import agentDataRoutes from "./routes/agentData.routes.js"
 import saveNotificationToken from "./firebase/routes.js"
 import googleAuth from "./routes/googleapis.routes.js"
+import googleCalendarRoutes from "./routes/googleCalender.routes.js";
+import { createRemindersCron } from "./firebase/remindercreationfile.js"
+import { sendnoti } from "./firebase/SendNotification.js"
+
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -22,6 +26,7 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+
 app.get("/test", (req, res) => {
   res.send("Test route works!");
 });
@@ -34,4 +39,9 @@ app.use("/api/v1", agentDataRoutes);
 
 app.use("/api/v1/save-token",saveNotificationToken)
 app.use("/api/v1",googleAuth)
+app.use("/api/v1/google", googleCalendarRoutes);
+
+sendnoti()
+createRemindersCron();
+
 export default app

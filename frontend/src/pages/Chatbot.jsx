@@ -1,18 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid";   
+import { v4 as uuidv4 } from "uuid";
 
-function ChatWidget({ userId, authToken }) {
+function ChatWidget() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
- 
   const sessionId = useRef(uuidv4());
   const messagesEndRef = useRef(null);
-
-
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,15 +17,14 @@ function ChatWidget({ userId, authToken }) {
 
   const toggleChat = () => setIsOpen((prev) => !prev);
 
-  
   const startNewChat = async () => {
     try {
       await axios.delete(
         `http://localhost:8000/api/v1/chatbot/session/${sessionId.current}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
-    } catch (e) {  }
-    sessionId.current = uuidv4();  
+    } catch (e) {}
+    sessionId.current = uuidv4();
     setMessages([]);
   };
 
@@ -37,7 +33,7 @@ function ChatWidget({ userId, authToken }) {
 
     const userMessage = { from: "user", text: inputText };
     setMessages((msgs) => [...msgs, userMessage]);
-    const currentInput = inputText;
+    const currentInput = inputText;   
     setInputText("");
     setIsLoading(true);
 
@@ -46,8 +42,8 @@ function ChatWidget({ userId, authToken }) {
         "http://localhost:8000/api/v1/chatbot",
         {
           userId,
-          message: currentInput,
-          sessionId: sessionId.current,   
+          message: currentInput,       
+          sessionId: sessionId.current, 
         },
         {
           headers: {
@@ -58,7 +54,6 @@ function ChatWidget({ userId, authToken }) {
       );
 
       setMessages((msgs) => [...msgs, { from: "bot", text: resp.data.reply }]);
-
     } catch (err) {
       console.error("Chat API error:", err);
       setMessages((msgs) => [
@@ -70,14 +65,12 @@ function ChatWidget({ userId, authToken }) {
     }
   };
 
-
-
-const handleKeyPress = (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-};
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
     <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">

@@ -1,79 +1,82 @@
-import express from "express";
-import admin from "./firebaseAdmin.js";
-import cron from "node-cron";
-import {User} from "../model/user.model.js"; 
 
-/**
- * Send FCM data-only notification
- */
+
+import cron from "node-cron";
+import admin from "./firebaseAdmin.js";
+import { Reminder } from "../model/reminderstatus.js";
+import { Medicine } from "../model/medicine.model.js";
+import { handleMissedReminder } from "../controllers/reminder.controller.js";
+
+/* 🔔 Send DATA-ONLY FCM */
 async function sendNotification(token, medicine) {
   const message = {
+    token,
     data: {
-      title: `💊 Medicine Reminder`,
+      title: "💊 Medicine Reminder",
       body: `Time to take your medicine: ${medicine.medicineName} (${medicine.dosage})`,
       medicineId: medicine._id.toString(),
     },
-    token,
   };
 
-  try {
-    await admin.messaging().send(message);
-    console.log("✅ Notification sent to", token);
-  } catch (err) {
-    console.error("❌ Error sending notification:", err);
-  }
+  await admin.messaging().send(message);
 }
 
-/**
- * Cron job for medicine reminders
- */
+/* 🕒 Minute Cron */
 const sendnoti = () => {
   cron.schedule("* * * * *", async () => {
-    console.log("🕒 Cron triggered:", new Date().toLocaleString());
+    const now = new Date();
 
     try {
-      const now = new Date();
-      const medicines = await Medicine.find().populate("userId");
+      /* 🔔 SEND REMINDERS (ONLY ONCE) */
+      const reminders = await Reminder.find({
+        status: "pending",
+        notified: false,               // 🔥 KEY FIX
+        time: { $lte: now },
+      }).populate("medicineId userId");
 
-      for (const med of medicines) {
-        const user = med.userId;
-        if (!user || !user.fcmToken) continue;
+      for (const reminder of reminders) {
+        const user = reminder.userId;
+        const medicine = reminder.medicineId;
 
-        for (const t of med.time) {
-          const [hours, minutes] = t.split(":").map(Number);
-          const medTime = new Date(now);
-          medTime.setHours(hours, minutes, 0, 0);
+        if (!user?.fcmToken || !medicine) continue;
 
-          const diff = Math.abs(medTime.getTime() - now.getTime());
+        await sendNotification(user.fcmToken, medicine);
 
-          if (med.snoozedUntil && med.snoozedUntil > now) continue;
+        reminder.notified = true;     // 🔒 LOCK notification
+        await reminder.save();
 
-          if (diff < 120000) {
-            if (med.lastNotified) {
-              const last = new Date(med.lastNotified);
-              if (
-                last.toDateString() === now.toDateString() &&
-                Math.abs(last.getTime() - medTime.getTime()) < 60000
-              )
-                continue;
-            }
+        console.log(
+          `🔔 Notified reminder ${reminder._id} (${medicine.medicineName})`
+        );
+      }
 
-            console.log(
-              `💊 Sending notification for ${med.medicineName} to user ${user._id}`
-            );
-            
+      /* ⚠️ HANDLE MISSED REMINDERS (ONCE) */
+      const lateReminders = await Reminder.find({
+        status: "pending",
+        processedMissed: false,
+        time: { $lt: new Date(now.getTime() - 30 * 60 * 1000) },
+      });
 
-            await sendNotification(user.fcmToken, med);
+      for (const reminder of lateReminders) {
+        reminder.processedMissed = true;
+        reminder.status = "missed";
 
-            med.lastNotified = now;
-            await med.save();
-          }
+        const medicine = await Medicine.findById(reminder.medicineId);
+        if (medicine) {
+          medicine.missedCount += 1;
+          await medicine.save();
         }
+
+        await reminder.save();
+        await handleMissedReminder(reminder._id);
+
+        console.log(`⚠️ Marked missed: ${reminder._id}`);
       }
     } catch (err) {
-      console.error("❌ Error in cron job:", err);
+      console.error("❌ Notification cron error:", err);
     }
-  }
-});
-}
-export {sendnoti};
+  });
+
+  console.log("🕐 Minute notification cron scheduled.");
+};
+
+export { sendnoti };

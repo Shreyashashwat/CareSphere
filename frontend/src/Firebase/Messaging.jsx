@@ -1,3 +1,4 @@
+// src/Firebase/Messaging.jsx
 import { useEffect } from "react";
 import { requestPermission } from "./requestPermission";
 
@@ -8,12 +9,7 @@ function Messaging() {
     requestPermission(userId);
   }, []);
 
-  return (
-    <div>
-      <h1>CareSphere Notifications 🔔</h1>
-      <p>You'll receive reminders when they are scheduled.</p>
-    </div>
-  );
+  return null; // No UI needed
 }
 
 export default Messaging;

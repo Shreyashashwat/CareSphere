@@ -11,10 +11,10 @@ import { verifyJwt } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
 
-router.get('/', getReminders);
-router.post('/', addReminder);
-router.put('/:id', updateReminderStatus);
-router.delete('/:id', deleteReminder);
+router.get('/', verifyJwt,getReminders);
+router.post('/', verifyJwt,addReminder);
+router.put('/:id', verifyJwt,updateReminderStatus);
+router.delete('/:id',verifyJwt, deleteReminder);
 
 router.route("/taken/:reminderId").patch(verifyJwt,markasTaken)
 router.route("/missed/:reminderId").patch(verifyJwt,markasMissed)

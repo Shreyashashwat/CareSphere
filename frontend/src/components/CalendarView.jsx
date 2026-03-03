@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
-const CalendarView = () => {
+const CalendarView = ({ reminders = [] }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarData, setCalendarData] = useState({});
 
   useEffect(() => {
     const data = {};
@@ -42,7 +43,7 @@ const CalendarView = () => {
     return "";
   };
 
-return (
+  return (
     <div className="flex flex-col items-center p-4 bg-white rounded-lg shadow-md max-w-md mx-auto">
       <h2 className="text-xl font-semibold mb-4 text-gray-800">Medicine Calendar</h2>
 
@@ -63,7 +64,7 @@ return (
         <span className="inline-block w-3 h-3 bg-pink-200 rounded-full mx-2 align-middle"></span> Upcoming
       </div>
     </div>
-);
+  );
 };
 
 export default CalendarView;
