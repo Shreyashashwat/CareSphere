@@ -16,6 +16,7 @@ export const requestPermission = async (userId) => {
 
     const token = await getToken(messaging, {
       vapidKey: "BG8L7pkVGe7RpMdpDSuJd4IR-_QDh0D6Xllb9UIRgcpoeUBXhqhyRL-V2mkWLzDKMcUT24eha-BujuJm7IA4Ia0",
+      serviceWorkerRegistration: registration,
     });
 
     if (!token) {

@@ -5,8 +5,10 @@ import {
   acceptDoctorRequest,
   rejectDoctorRequest,
   getDoctorDashboard,
-  getDoctorAppointments, 
+  getDoctorOwnAppointments, 
   updateAppointmentStatus, 
+  
+  
 } from "../api";
 
 const DoctorDashboard = () => {
@@ -49,7 +51,7 @@ const DoctorDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await getDoctorAppointments();
+      const res = await getDoctorOwnAppointments();
       setAppointments(Array.isArray(res.data.data) ? res.data.data : []);
     } catch (err) {
       console.error("Failed to fetch appointments:", err);
