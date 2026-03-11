@@ -10,6 +10,7 @@ import {
   getPatientRequestStatus,
   getPatientRequests,
   getPatientAppointments,
+  getDoctorAppointments,
   scheduleAppointment,
   updateAppointmentStatus,
   
@@ -29,8 +30,10 @@ router.post("/doctor-request/:id/accept", verifyJwt, acceptRequest);
 router.post("/doctor-request/:id/reject", verifyJwt, rejectRequest);
 router.get("/doctor/dashboard", verifyJwt, getDoctorDashboard);
 router.post("/doctor-request/createAppointment",verifyJwt,scheduleAppointment);
-router.get("/doctor-request/getappointments",verifyJwt,getPatientAppointments);
+router.get("/doctor-request/getappointments",verifyJwt,getDoctorAppointments);
 router.post("/doctor-request/appointments/:appointmentId",updateAppointmentStatus)
+router.get("/doctor-request/getappointments/patient",verifyJwt,getPatientAppointments);
+router.get("/doctor-request/doctor-appointments", verifyJwt, getDoctorAppointments);
 
 export default router;
 

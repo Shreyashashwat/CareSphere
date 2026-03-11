@@ -63,8 +63,10 @@ export const acceptDoctorRequest = (requestId) => API.post(`/doctor-request/${re
 export const rejectDoctorRequest = (requestId) => API.post(`/doctor-request/${requestId}/reject`);
 export const getDoctorDashboard = () => API.get("/doctor/dashboard");
 export const createAppointment = (data) => API.post(`/doctor-request/createAppointment`, data);
-export const getDoctorAppointments = () => API.get(`/doctor-request/getappointments`);
+export const getDoctorAppointments = () => API.get(`/doctor-request/getappointments/patient`);
 export const updateAppointmentStatus = (appointmentId, status) => 
   API.post(`/doctor-request/appointments/${appointmentId}`, { status });
+export const getPatientAppointments = () => API.get(`/doctor-request/getappointments`);
+export const getDoctorOwnAppointments = () => API.get("/doctor-request/doctor-appointments");
 
 export default API;
