@@ -7,11 +7,11 @@ const AGENT_URL = process.env.PYTHON_AGENT_URL || "http://localhost:8002";
 
 export const chatbot = async (req, res) => {
   try {
-    const { message, sessionId } = req.body;
+    const { userId, message, sessionId } = req.body;
 
     const loggedInUserId = req.user._id || req.user.id;
-    if (!loggedInUserId) {
-      return res.status(401).json({ error: "Unauthorized" });
+    if (!loggedInUserId || loggedInUserId.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
     if (!message?.trim()) return res.status(400).json({ error: "Message is required" });
@@ -20,7 +20,7 @@ export const chatbot = async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ error: "No token found" });
 
-    
+    // ── Fetch user context (name, age, gender + active medicines) ────────────
     const [user, medicines] = await Promise.all([
       User.findById(loggedInUserId).select("username age gender"),
       Medicine.find({ userId: loggedInUserId }).select("medicineName  dosage frequency").lean(),
@@ -37,11 +37,11 @@ export const chatbot = async (req, res) => {
         frequency: m.frequency,
       })),
     };
-  
+    // ─────────────────────────────────────────────────────────────────────────
 
     const agentResponse = await axios.post(
       `${AGENT_URL}/chat`,
-      { userId: loggedInUserId.toString(), message, token, sessionId, userContext },
+      { userId, message, token, sessionId, userContext },
       { timeout: 90000 }
     );
 

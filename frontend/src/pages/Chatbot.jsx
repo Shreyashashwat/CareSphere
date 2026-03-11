@@ -61,6 +61,17 @@ function ChatWidget() {
       );
 
       setMessages((msgs) => [...msgs, { from: "bot", text: resp.data.reply }]);
+
+      // Notify patient page to re-fetch medicines/reminders/history after chat actions.
+      window.dispatchEvent(
+        new CustomEvent("caresphere:chat-updated", {
+          detail: {
+            sessionId: sessionId.current,
+            userMessage: currentInput,
+            botReply: resp.data?.reply || "",
+          },
+        })
+      );
     } catch (err) {
       console.error("Chat API error:", err);
       setMessages((msgs) => [
@@ -156,7 +167,15 @@ function ChatWidget() {
                             : "rounded-bl-sm border-2 border-blue-100 bg-white font-normal text-gray-800"
                         }`}
                       >
-                        {m.text}
+                        {m.from === "bot"
+  ? m.text.split("\n").map((line, i) => (
+      <span key={i}>
+        {line}
+        {i < m.text.split("\n").length - 1 && <br />}
+      </span>
+    ))
+  : m.text
+}
                       </div>
                       {m.from === "user" && (
                         <div className="mb-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">

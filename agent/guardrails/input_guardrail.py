@@ -2,19 +2,22 @@ import re
 
 MAX_MESSAGE_LENGTH = 1000
 
-
+# These patterns get BLOCKED — the agent never sees these messages
 BLOCKED_PATTERNS = [
+    # Self-harm / crisis
     (r"\b(suicide|kill myself|end my life|want to die|self.?harm)\b", "crisis"),
     (r"\b(overdose on purpose|take too many pills on purpose|dangerous dose intentionally)\b", "crisis"),
-    
+    # Prompt injection attempts
     (r"\b(ignore (all |previous |your |the )?instructions|forget (all |previous |your )?instructions)\b", "injection"),
     (r"\b(jailbreak|act as dan|do anything now|pretend you are|you are now a)\b", "injection"),
     (r"\b(system prompt|reveal your prompt|print your instructions)\b", "injection"),
-    
+    # Code injection
     (r"(<script|javascript:|on\w+\s*=|drop\s+table|select\s+\*\s+from|insert\s+into)", "code_injection"),
+    # Dangerous drug info
     (r"\b(what is the lethal dose|how to poison|how much to overdose)\b", "dangerous"),
 ]
 
+# These patterns are ALLOWED but trigger a medical disclaimer on the response
 MEDICAL_ADVICE_PATTERNS = [
     r"\b(do i have|is this|could this be) .{0,30}(cancer|diabetes|disease|disorder|condition)\b",
     r"\b(should i (take|stop|switch|change|increase|decrease)|can i take).{0,30}(with|instead of|together)\b",
@@ -50,9 +53,9 @@ def validate_input(message: str) -> tuple[bool, str]:
                     "I noticed something concerning in your message. "
                     "If you're going through a difficult time, please reach out for help:\n\n"
                     "🇮🇳 **iCall (India):** 9152987821\n"
-                    "**International Association for Suicide Prevention:** https://www.iasp.info/resources/Crisis_Centres/\n\n"
+                    "🌍 **International Association for Suicide Prevention:** https://www.iasp.info/resources/Crisis_Centres/\n\n"
                     "I'm a medication assistant and can't provide the support you deserve right now. "
-                    "Please talk to someone who can help."
+                    "Please talk to someone who can help. 💙"
                 )
             elif category == "injection":
                 return False, (

@@ -292,29 +292,33 @@ export const getAssignedPatients = async (req, res) => {
 
 export const getPatientDetails = async (req, res) => {
     try {
-        const { patientId } = req.params;
-        const caregiverId = req.user.id;
+        const { patientId: targetUserId } = req.params;
+        const currentUserId = req.user.id;
 
         const link = await CaregiverLink.findOne({
-            patientId,
-            caregiverId,
-            status: "Active"
+            status: "Active",
+            $or: [
+                // Caregiver viewing patient report
+                { patientId: targetUserId, caregiverId: currentUserId },
+                // Patient viewing caregiver report
+                { patientId: currentUserId, caregiverId: targetUserId },
+            ],
         });
 
         if (!link) {
-            return res.status(403).json({ success: false, message: "Not authorized to view this patient" });
+            return res.status(403).json({ success: false, message: "Not authorized to view this family member" });
         }
 
         const Medicine = mongoose.model("Medicine");
         const Reminder = mongoose.model("Reminder");
 
-        const medicines = await Medicine.find({ userId: patientId });
+        const medicines = await Medicine.find({ userId: targetUserId });
 
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const recentHistory = await Reminder.find({
-            userId: patientId,
+            userId: targetUserId,
             time: { $gte: sevenDaysAgo }
         }).sort({ time: -1 }).limit(50);
 

@@ -288,6 +288,16 @@ const fetchHistoryData = async () => {
   }, []);
 
   useEffect(() => {
+    const handleChatUpdated = async () => {
+      await Promise.all([fetchMedicines(), fetchHistoryData(), fetchReminders()]);
+      setRefreshTrigger((prev) => prev + 1);
+    };
+
+    window.addEventListener("caresphere:chat-updated", handleChatUpdated);
+    return () => window.removeEventListener("caresphere:chat-updated", handleChatUpdated);
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "insights") fetchWeeklyInsights();
     if (activeTab === "myDoctor") { fetchAppointments(); fetchReminders(); }
   }, [activeTab]);

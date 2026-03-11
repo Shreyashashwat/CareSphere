@@ -123,15 +123,27 @@ def make_appointment_tools(token: str):
     def book_appointment(doctorId: str, appointmentDate: str, problem: str) -> str:
         """
         Book an appointment with a doctor on behalf of the user.
-        Always call get_available_doctors first to get the correct doctorId.
+        IMPORTANT: You MUST call get_available_doctors first and copy the EXACT ID
+        from the DOCTORS_LIST output (e.g. '69876638c9c7ca4d1eb19be2').
+        NEVER invent, guess, or use placeholder values like 'doctorId' or 'doctorId_placeholder'.
+        NEVER assume a time. If the user did not provide a time, ask them for it before calling this tool.
         Args:
-            doctorId: the doctor's MongoDB ID from get_available_doctors
+            doctorId: the doctor's EXACT 24-char hex MongoDB ID from get_available_doctors output
             appointmentDate: ISO datetime string e.g. "2026-03-20T10:00:00"
             problem: reason for visit e.g. "chest pain", "routine checkup"
-        Only call this when the user has confirmed the details.
+        Only call this after get_available_doctors and after the user confirms details.
         """
         if not doctorId or not appointmentDate or not problem:
             return "Missing required fields: doctorId, appointmentDate, and problem are all required."
+
+        # Guard: reject placeholder/fake IDs - must be a 24-char hex MongoDB ObjectId
+        import re
+        if not re.fullmatch(r'[a-fA-F0-9]{24}', doctorId):
+            return (
+                "⚠️ Invalid doctorId provided. You must use the exact doctor ID returned by "
+                "get_available_doctors (a 24-character hex string like '69876638c9c7ca4d1eb19be2'). "
+                "Please call get_available_doctors first to get the real ID."
+            )
 
         try:
             appt_dt = datetime.fromisoformat(appointmentDate)
