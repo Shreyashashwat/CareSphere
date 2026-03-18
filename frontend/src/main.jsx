@@ -10,15 +10,5 @@ createRoot(document.getElementById('root')).render(
 )
 
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then((registration) => {
-        console.log('✅ Service Worker registered:', registration);
-      })
-      .catch((error) => {
-        console.error('❌ Service Worker registration failed:', error);
-      });
-  });
-}
+// Service worker is registered by requestPermission.js to ensure
+// the correct Firebase SW is always used for FCM token binding.

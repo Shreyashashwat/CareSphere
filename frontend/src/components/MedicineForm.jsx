@@ -15,6 +15,8 @@ const MedicineForm = ({ onSuccess, medicine }) => {
   const [isEditing, setIsEditing] = useState(!!medicine?._id);
   const [medicineValid, setMedicineValid] = useState(true);
   const [checkingMedicine, setCheckingMedicine] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (medicine) {
@@ -32,35 +34,25 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     }
   }, [medicine]);
 
-  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "medicineName") {
-      validateMedicineName(value);
-    }
+    if (name === "medicineName") validateMedicineName(value);
   };
 
-  // Validate medicine via backend
   let timeout;
   const validateMedicineName = (name) => {
     clearTimeout(timeout);
     timeout = setTimeout(async () => {
-      if (!name) {
-        setMedicineValid(true);
-        return;
-      }
+      if (!name) { setMedicineValid(true); return; }
       setCheckingMedicine(true);
       try {
         const res = await fetch(
-          `http://localhost:8000/api/v1/medicine/validate-medicine/${encodeURIComponent(
-            name
-          )}`
+          `http://localhost:8000/api/v1/medicine/validate-medicine/${encodeURIComponent(name)}`
         );
         const data = await res.json();
         setMedicineValid(data.valid);
-      } catch (err) {
+      } catch {
         setMedicineValid(false);
       } finally {
         setCheckingMedicine(false);
@@ -81,18 +73,46 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     setFormData({ ...formData, time: formData.time.filter((_, i) => i !== index) });
 
   const showSuccess = (msg) => {
-    setSuccessMsg(msg); setErrorMsg("");
+    setSuccessMsg(msg);
+    setErrorMsg("");
     setTimeout(() => setSuccessMsg(""), 3000);
   };
+
   const showError = (msg) => {
-    setErrorMsg(msg); setSuccessMsg("");
+    setErrorMsg(msg);
+    setSuccessMsg("");
     setTimeout(() => setErrorMsg(""), 4000);
+  };
+
+  const createRemindersForMedicine = async (medicineId, data) => {
+    for (const t of data.time) {
+      const start = new Date(data.startDate);
+      const end = data.endDate ? new Date(data.endDate) : start;
+      const step = data.frequency === "daily" ? 1
+        : data.frequency === "weekly" ? 7 : 0;
+
+      if (step > 0) {
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + step)) {
+          const [hours, minutes] = t.split(":");
+          const reminderTime = new Date(d);
+          reminderTime.setHours(hours, minutes, 0, 0);
+          await addReminder({ medicineId, time: reminderTime.toISOString() });
+        }
+      }
+
+      if (data.frequency === "as needed") {
+        const [hours, minutes] = t.split(":");
+        const reminderTime = new Date(start);
+        reminderTime.setHours(hours, minutes, 0, 0);
+        await addReminder({ medicineId, time: reminderTime.toISOString(), status: "pending" });
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!medicineValid) {
-      alert("Please enter a valid medicine name.");
+      showError("Please enter a valid medicine name.");
       return;
     }
 
@@ -102,114 +122,31 @@ const MedicineForm = ({ onSuccess, medicine }) => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user || !user._id) {
         showError("User not found. Please log in again.");
-        setLoading(false);
         return;
       }
 
-      const medicineData = {
-        ...formData,
-        userId: user._id,
-      };
+      const medicineData = { ...formData, userId: user._id };
+      const wasEditing = isEditing;
+      const savedFormData = { ...formData };
 
       let medicineId;
-      const wasEditing = isEditing;
-      const savedFormData = { ...formData }; // snapshot before reset
-
-      if (isEditing) {
+      if (wasEditing) {
         const res = await updateMedicine(medicine._id, medicineData);
         medicineId = res.data.data._id;
       } else {
         const res = await addMedicine(medicineData);
         medicineId = res.data.data._id;
-        alert("Medicine added successfully!");
-
-        // Add reminders for new medicine
-        for (const t of formData.time) {
-          const start = new Date(formData.startDate);
-          const end = formData.endDate ? new Date(formData.endDate) : start;
-
-          const step =
-            formData.frequency === "daily"
-              ? 1
-              : formData.frequency === "weekly"
-              ? 7
-              : 0;
-
-          for (
-            let d = new Date(start);
-            step > 0 && d <= end;
-            d.setDate(d.getDate() + step)
-          ) {
-            const [hours, minutes] = t.split(":");
-            const reminderTime = new Date(d);
-            reminderTime.setHours(hours, minutes, 0, 0);
-
-            await addReminder({
-              medicineId,
-              time: reminderTime.toISOString(),
-            });
-          }
-
-          if (formData.frequency === "as needed") {
-            const [hours, minutes] = t.split(":");
-            const reminderTime = new Date(start);
-            reminderTime.setHours(hours, minutes, 0, 0);
-            await addReminder({
-              medicineId,
-              time: reminderTime.toISOString(),
-              status: "pending",
-            });
-          }
-        }
+        await createRemindersForMedicine(medicineId, savedFormData);
       }
 
-      // Reset form
       setFormData({
-        medicineName: "",
-        dosage: "",
-        frequency: "daily",
-        time: [""],
-        startDate: "",
-        endDate: "",
+        medicineName: "", dosage: "", frequency: "daily",
+        time: [""], startDate: "", endDate: "",
       });
       setIsEditing(false);
 
-     
       if (onSuccess) onSuccess();
-
       showSuccess(wasEditing ? "Medicine updated!" : "Medicine added!");
-
-      
-      if (!wasEditing) {
-        (async () => {
-          try {
-            for (const t of savedFormData.time) {
-              const start = new Date(savedFormData.startDate);
-              const end = savedFormData.endDate ? new Date(savedFormData.endDate) : start;
-              const step = savedFormData.frequency === "daily" ? 1
-                : savedFormData.frequency === "weekly" ? 7 : 0;
-
-              for (let d = new Date(start); step > 0 && d <= end; d.setDate(d.getDate() + step)) {
-                const [hours, minutes] = t.split(":");
-                const reminderTime = new Date(d);
-                reminderTime.setHours(hours, minutes, 0, 0);
-                await addReminder({ medicineId, time: reminderTime.toISOString() });
-              }
-
-              if (savedFormData.frequency === "as needed") {
-                const [hours, minutes] = t.split(":");
-                const reminderTime = new Date(start);
-                reminderTime.setHours(hours, minutes, 0, 0);
-                await addReminder({ medicineId, time: reminderTime.toISOString(), status: "pending" });
-              }
-            }
-            
-            if (onSuccess) onSuccess();
-          } catch (err) {
-            console.warn("⚠️ Background reminder creation error:", err.message);
-          }
-        })();
-      }
 
     } catch (err) {
       console.error(err);
@@ -239,6 +176,19 @@ const MedicineForm = ({ onSuccess, medicine }) => {
       </div>
 
       <div className="space-y-6 p-8">
+
+        {/* Success / Error messages */}
+        {successMsg && (
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-bold text-emerald-700">
+            <span>✅</span><span>{successMsg}</span>
+          </div>
+        )}
+        {errorMsg && (
+          <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-bold text-red-700">
+            <span>⚠️</span><span>{errorMsg}</span>
+          </div>
+        )}
+
         <div className="group">
           <label className="mb-2 block text-sm font-bold text-gray-800">
             Medicine Name <span className="text-red-500">*</span>
@@ -265,15 +215,13 @@ const MedicineForm = ({ onSuccess, medicine }) => {
             )}
           </div>
           {!medicineValid && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all">
-              <span className="text-base">⚠️</span> 
-              <span>Medicine not found in our database</span>
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              <span>⚠️</span><span>Medicine not found in our database</span>
             </div>
           )}
           {medicineValid && formData.medicineName && !checkingMedicine && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition-all">
-              <span className="text-base">✓</span> 
-              <span>Medicine verified successfully</span>
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+              <span>✓</span><span>Medicine verified successfully</span>
             </div>
           )}
         </div>
@@ -322,10 +270,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
           </label>
           <div className="space-y-2">
             {formData.time.map((t, index) => (
-              <div
-                key={index}
-                className="group flex items-center gap-3 transition-all duration-200"
-              >
+              <div key={index} className="group flex items-center gap-3 transition-all duration-200">
                 <div className="relative flex-1">
                   <input
                     type="time"
@@ -342,8 +287,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
                   <button
                     type="button"
                     onClick={() => removeTimeField(index)}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-red-200 bg-red-50 font-bold text-red-600 shadow-sm transition duration-200 hover:bg-red-100 hover:shadow"
-                    aria-label="Remove time"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-red-200 bg-red-50 font-bold text-red-600 shadow-sm transition duration-200 hover:bg-red-100"
                   >
                     ×
                   </button>
@@ -354,16 +298,14 @@ const MedicineForm = ({ onSuccess, medicine }) => {
           <button
             type="button"
             onClick={addTimeField}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 px-4 py-3 text-sm font-bold text-blue-600 shadow-sm transition duration-200 hover:border-blue-400 hover:bg-blue-100 hover:shadow"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 px-4 py-3 text-sm font-bold text-blue-600 shadow-sm transition duration-200 hover:border-blue-400 hover:bg-blue-100"
           >
             <span className="text-xl">+</span> Add Another Reminder Time
           </button>
         </div>
 
         <div className="rounded-2xl border-2 border-blue-100 bg-blue-50/30 p-5">
-          <label className="mb-3 block text-sm font-bold text-gray-800">
-            Schedule Duration
-          </label>
+          <label className="mb-3 block text-sm font-bold text-gray-800">Schedule Duration</label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-600">
@@ -378,7 +320,6 @@ const MedicineForm = ({ onSuccess, medicine }) => {
                 required
               />
             </div>
-
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-600">
                 End Date <span className="text-xs font-normal text-gray-400">(Optional)</span>
@@ -425,7 +366,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
               </>
             )}
           </span>
-          {!loading && !(!medicineValid) && (
+          {!loading && medicineValid && (
             <span className="absolute inset-0 -z-0 bg-gradient-to-r from-indigo-600 to-blue-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></span>
           )}
         </button>

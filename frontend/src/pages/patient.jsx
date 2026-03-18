@@ -38,7 +38,7 @@ const Patient = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [weeklyInsights, setWeeklyInsights] = useState([]);
-
+  const [loadingInsights, setLoadingInsights] = useState(false);
   // My Doctor tab
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
@@ -61,18 +61,45 @@ const Patient = () => {
   const [treatmentOverviewItemsPerPage, setTreatmentOverviewItemsPerPage] = useState(6);
   const [treatmentOverviewSearch, setTreatmentOverviewSearch] = useState("");
   const [treatmentOverviewSort, setTreatmentOverviewSort] = useState("name"); // name, adherence
+  const [insightsLastUpdated, setInsightsLastUpdated] = useState(null);
+  const [weeklyTrend, setWeeklyTrend] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("user"));
   const username = user?.username || "User";
 
   // -------------------- FETCHERS --------------------
   const fetchWeeklyInsights = async () => {
+    setLoadingInsights(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/weekly-insights/${user._id}`);
-      const data = await res.json();
-      setWeeklyInsights(data?.insights || []);
+      const token = user?.data?.token || user?.token;
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      const BASE = "http://localhost:8000";
+  
+      const cached = await fetch(`${BASE}/api/weekly-insights/me`, { headers });
+      const cachedData = await cached.json();
+      if (cachedData?.insights?.length > 0) {
+        setWeeklyInsights(cachedData.insights);
+        setInsightsLastUpdated(cachedData.created_at);
+        if (cachedData.weeklyTrend?.length > 0) setWeeklyTrend(cachedData.weeklyTrend);
+        setLoadingInsights(false);
+      }
+  
+      const fresh = await fetch(`${BASE}/api/weekly-insights/generate`, {
+        method: "POST", headers,
+      });
+      const freshData = await fresh.json();
+      if (freshData?.insights?.length > 0) {
+        setWeeklyInsights(freshData.insights);
+        setInsightsLastUpdated(freshData.created_at);
+        if (freshData.weeklyTrend?.length > 0) setWeeklyTrend(freshData.weeklyTrend);
+      }
     } catch (err) {
       console.error("Failed to fetch weekly insights", err);
+    } finally {
+      setLoadingInsights(false);
     }
   };
 
@@ -450,8 +477,9 @@ const fetchHistoryData = async () => {
   }, [treatmentOverviewSearch, treatmentOverviewSort]);
 
   // Calculate stats for quick view
-  const adherenceRate = history.length > 0 
-    ? Math.round((history.filter(h => h.status === 'taken').length / history.length) * 100)
+  const resolvedHistory = history.filter(h => h.status === 'taken' || h.status === 'missed');
+  const adherenceRate = resolvedHistory.length > 0
+    ? Math.round((resolvedHistory.filter(h => h.status === 'taken').length / resolvedHistory.length) * 100)
     : 0;
   
   // Filter out AI-adjusted pre-reminders (reminders created 15 min before the actual dose)
@@ -1140,7 +1168,7 @@ const fetchHistoryData = async () => {
               { label: "Doses Missed", value: history.filter(h => h.status === "missed").length, icon: "⚠️", color: "from-rose-500 to-red-600" },
               {
                 label: "Adherence",
-                value: `${history.length > 0 ? Math.round((history.filter(h => h.status === "taken").length / history.length) * 100) : 0}%`,
+                value: `${resolvedHistory.length > 0 ? Math.round((resolvedHistory.filter(h => h.status === "taken").length / resolvedHistory.length) * 100) : 0}%`,
                 icon: "📈",
                 color: "from-cyan-500 to-blue-500"
               },
@@ -1399,12 +1427,12 @@ const fetchHistoryData = async () => {
                     <svg className="w-full h-full -rotate-90">
                       <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/20" />
                       <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="364.4"
-                        strokeDashoffset={364.4 - (364.4 * (history.length > 0 ? (history.filter(h => h.status === "taken").length / history.length) : 0))}
+                       strokeDashoffset={364.4 - (364.4 * (resolvedHistory.length > 0 ? (resolvedHistory.filter(h => h.status === "taken").length / resolvedHistory.length) : 0))}
                         className="text-white transition-all duration-1000 ease-out" strokeLinecap="round" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-3xl font-black">
-                        {history.length > 0 ? Math.round((history.filter(h => h.status === "taken").length / history.length) * 100) : 0}
+                      {resolvedHistory.length > 0 ? Math.round((resolvedHistory.filter(h => h.status === "taken").length / resolvedHistory.length) * 100) : 0}
                       </span>
                     </div>
                   </div>
@@ -1418,59 +1446,320 @@ const fetchHistoryData = async () => {
         </section>
         
       ) : (
-        /* HEALTH INSIGHTS - ENHANCED */
-        <section className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
-              🧠
-            </div>
-            <h2 className="text-3xl font-black bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">
-              AI Health Insights
-            </h2>
-          </div>
-          
-          {weeklyInsights.length === 0 ? (
-            <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-20 text-center shadow-lg">
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl">
-                🤖
+        /* HEALTH INSIGHTS - INDUSTRY STANDARD */
+        <section className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+          {/* ── HEADER ROW ── */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-purple-200">
+                🧠
               </div>
-              <h3 className="text-xl font-bold text-gray-700 mb-2">Analyzing Your Health Data</h3>
-              <p className="text-gray-400 max-w-md mx-auto">
-                Our AI is processing your medication history. Check back in a few days for personalized weekly insights.
-              </p>
+              <div>
+                <h2 className="text-3xl font-black bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">
+                  AI Health Insights
+                </h2>
+                {insightsLastUpdated && (
+                  <p className="text-xs text-gray-400 mt-0.5 font-medium">
+                    Last updated · {new Date(insightsLastUpdated).toLocaleString([], {
+                      month: "short", day: "numeric",
+                      hour: "2-digit", minute: "2-digit"
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={fetchWeeklyInsights}
+              disabled={loadingInsights}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-purple-200 text-purple-700 rounded-2xl font-bold text-sm hover:bg-purple-50 hover:border-purple-400 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className={loadingInsights ? "animate-spin inline-block" : ""}>🔄</span>
+              {loadingInsights ? "Refreshing..." : "Refresh Insights"}
+            </button>
+          </div>
+
+       {/* ── 4-WEEK ADHERENCE TREND ── */}
+{(() => {
+  const weeks = weeklyTrend.length > 0
+    ? weeklyTrend
+    : Array.from({ length: 4 }, (_, i) => ({
+        label: i === 0 ? "4 wks ago" : i === 1 ? "3 wks ago" : i === 2 ? "Last week" : "This week",
+        pct: 0, taken: 0, total: 0
+      }));
+
+  const activeWeeks = weeks.filter(w => w.total > 0);
+  const thisWeek = weeks[weeks.length - 1];
+  const lastWeek = weeks[weeks.length - 2];
+  const trend = thisWeek?.total > 0 && lastWeek?.total > 0
+    ? thisWeek.pct - lastWeek.pct
+    : null;
+
+  const getScoreConfig = (pct, total) => {
+    if (total === 0) return { label: "No data", emoji: "⬜", ring: "ring-gray-200", bg: "bg-gray-50", text: "text-gray-400", fill: "bg-gray-200", badge: "bg-gray-100 text-gray-500" };
+    if (pct >= 80) return { label: "Excellent", emoji: "🟢", ring: "ring-emerald-300", bg: "bg-emerald-50", text: "text-emerald-600", fill: "bg-gradient-to-r from-emerald-400 to-teal-400", badge: "bg-emerald-100 text-emerald-700" };
+    if (pct >= 60) return { label: "Good",      emoji: "🟡", ring: "ring-amber-300",   bg: "bg-amber-50",   text: "text-amber-600",   fill: "bg-gradient-to-r from-amber-400 to-yellow-400",  badge: "bg-amber-100 text-amber-700"   };
+    if (pct >= 40) return { label: "Fair",      emoji: "🟠", ring: "ring-orange-300",  bg: "bg-orange-50",  text: "text-orange-600",  fill: "bg-gradient-to-r from-orange-400 to-amber-400",  badge: "bg-orange-100 text-orange-700"  };
+    return               { label: "Low",       emoji: "🔴", ring: "ring-rose-300",    bg: "bg-rose-50",    text: "text-rose-600",    fill: "bg-gradient-to-r from-rose-400 to-red-400",     badge: "bg-rose-100 text-rose-700"     };
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+
+    {/* Gradient header */}
+    <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between">
+      <div>
+        <h3 className="font-black text-white text-lg tracking-tight">4-Week Adherence</h3>
+        <p className="text-indigo-200 text-xs mt-0.5 font-medium">
+          {activeWeeks.length === 0
+            ? "Start taking doses to build your trend"
+            : `${activeWeeks.length} week${activeWeeks.length > 1 ? "s" : ""} of data recorded`}
+        </p>
+      </div>
+      {thisWeek?.total > 0 && (
+        <div className="text-right">
+          <div className="text-4xl font-black text-white">{thisWeek.pct}%</div>
+          {trend !== null ? (
+            <div className={`text-xs font-bold flex items-center justify-end gap-1 mt-0.5 ${
+              trend > 0 ? "text-emerald-300" : trend < 0 ? "text-rose-300" : "text-indigo-200"
+            }`}>
+              <span>{trend > 0 ? "▲" : trend < 0 ? "▼" : "→"}</span>
+              <span>{trend === 0 ? "Same as last week" : `${Math.abs(trend)}% vs last week`}</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {weeklyInsights.map((insight, idx) => (
-                <div 
-                  key={idx} 
-                  className="group bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-xs px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 font-black uppercase tracking-wider border border-indigo-100">
-                      {insight.category}
-                    </span>
-                    <span className={`text-xs font-black px-3 py-1.5 rounded-xl ${
-                      insight.priority === "high" 
-                        ? "bg-red-50 text-red-600 border border-red-100" 
-                        : insight.priority === "medium" 
-                        ? "bg-yellow-50 text-yellow-600 border border-yellow-100" 
-                        : "bg-green-50 text-green-600 border border-green-100"
-                    }`}>
-                      {insight.priority.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-gray-700 text-sm leading-relaxed font-medium">{insight.text}</p>
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <span>💡</span>
-                      <span>AI-Generated Insight</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="text-[11px] text-indigo-200 mt-0.5">This week</div>
+          )}
+        </div>
+      )}
+    </div>
+
+    {/* 4 week tiles with circular rings */}
+    <div className="grid grid-cols-4 divide-x divide-gray-100">
+      {weeks.map((week, i) => {
+        const cfg = getScoreConfig(week.pct, week.total);
+        const isLatest = i === weeks.length - 1;
+        const strokeColor = week.total === 0 ? "#e2e8f0"
+          : week.pct >= 80 ? "#10b981"
+          : week.pct >= 60 ? "#f59e0b"
+          : week.pct >= 40 ? "#f97316" : "#f43f5e";
+        return (
+          <div
+            key={i}
+            className={`flex flex-col items-center justify-center py-6 px-3 transition-colors duration-200 ${
+              isLatest ? "bg-indigo-50" : "bg-white hover:bg-gray-50"
+            }`}
+          >
+            <span className={`text-[10px] font-black uppercase tracking-widest mb-3 ${
+              isLatest ? "text-indigo-500" : "text-gray-400"
+            }`}>
+              {week.label}
+            </span>
+
+            <div className="relative w-16 h-16 mb-3">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                <circle
+                  cx="18" cy="18" r="15.5" fill="none"
+                  stroke={strokeColor}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray="97.4"
+                  strokeDashoffset={week.total === 0 ? 97.4 : 97.4 - (97.4 * week.pct) / 100}
+                  className="transition-all duration-700"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-sm font-black ${week.total === 0 ? "text-gray-300" : cfg.text}`}>
+                  {week.total === 0 ? "—" : `${week.pct}%`}
+                </span>
+              </div>
+            </div>
+
+            <span className={`text-[10px] font-semibold ${week.total === 0 ? "text-gray-300" : "text-gray-500"}`}>
+              {week.total === 0 ? "no data" : `${week.taken}/${week.total}`}
+            </span>
+
+            {week.total > 0 && (
+              <span className={`mt-2 text-[9px] font-black px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                {cfg.label}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+
+    {/* Bottom summary bar */}
+    {thisWeek?.total > 0 && (() => {
+      const cfg = getScoreConfig(thisWeek.pct, thisWeek.total);
+      const missed = thisWeek.total - thisWeek.taken;
+      return (
+        <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-gray-50/60">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${cfg.bg}`}>
+              {cfg.emoji}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-gray-800">This Week</span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+              </div>
+              <div className="flex gap-3 text-xs mt-0.5">
+                <span className="text-emerald-600 font-semibold">✓ {thisWeek.taken} taken</span>
+                <span className="text-rose-500 font-semibold">✗ {missed} missed</span>
+              </div>
+            </div>
+          </div>
+          {trend !== null && (
+            <div className={`text-right px-3 py-2 rounded-xl ${
+              trend > 0 ? "bg-emerald-50" : trend < 0 ? "bg-rose-50" : "bg-gray-100"
+            }`}>
+              <div className={`text-xl font-black ${
+                trend > 0 ? "text-emerald-600" : trend < 0 ? "text-rose-500" : "text-gray-400"
+              }`}>
+                {trend > 0 ? `+${trend}%` : trend < 0 ? `${trend}%` : "→"}
+              </div>
+              <div className="text-[9px] text-gray-400 font-bold">vs prev week</div>
             </div>
           )}
+        </div>
+      );
+    })()}
+
+    {activeWeeks.length === 0 && (
+      <div className="px-6 py-5 border-t border-gray-100 text-center">
+        <p className="text-sm text-gray-400">Take your first dose — your trend will appear here week by week.</p>
+      </div>
+    )}
+  </div>
+);
+})()}
+          {/* ── INSIGHT CARDS or LOADING / EMPTY ── */}
+          {loadingInsights && weeklyInsights.length === 0 ? (
+            <div className="bg-white rounded-3xl border-2 border-dashed border-purple-100 p-20 text-center shadow-sm">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full mx-auto mb-5 flex items-center justify-center text-4xl animate-pulse">🤖</div>
+              <h3 className="text-lg font-bold text-gray-700 mb-2">Generating Your Insights...</h3>
+              <p className="text-gray-400 text-sm max-w-sm mx-auto">Our AI is analysing your medication patterns. This takes a few seconds.</p>
+            </div>
+          ) : weeklyInsights.length === 0 ? (
+            <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-20 text-center shadow-sm">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full mx-auto mb-5 flex items-center justify-center text-4xl">🤖</div>
+              <h3 className="text-lg font-bold text-gray-700 mb-2">No Insights Yet</h3>
+              <p className="text-gray-400 text-sm max-w-sm mx-auto">Start logging your doses and we'll generate personalised insights once there's enough data.</p>
+            </div>
+          ) : (
+            <>
+              {/* subtle refreshing bar */}
+              {loadingInsights && (
+                <div className="w-full h-1 bg-purple-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse" style={{ width: "60%" }} />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {weeklyInsights.map((insight, idx) => {
+                  const categoryConfig = {
+                    Timing:      { icon: "⏰", gradient: "from-blue-50 to-indigo-50",   border: "border-blue-100",   badge: "bg-blue-100 text-blue-700",   bar: "bg-blue-400"   },
+                    Consistency: { icon: "🔥", gradient: "from-orange-50 to-amber-50",  border: "border-orange-100", badge: "bg-orange-100 text-orange-700", bar: "bg-orange-400" },
+                    Progress:    { icon: "📈", gradient: "from-emerald-50 to-teal-50",  border: "border-emerald-100",badge: "bg-emerald-100 text-emerald-700",bar: "bg-emerald-400"},
+                    Medicine:    { icon: "💊", gradient: "from-purple-50 to-pink-50",   border: "border-purple-100", badge: "bg-purple-100 text-purple-700", bar: "bg-purple-400" },
+                    Lifestyle:   { icon: "🌱", gradient: "from-lime-50 to-green-50",    border: "border-lime-100",   badge: "bg-lime-100 text-lime-700",    bar: "bg-lime-400"   },
+                  };
+
+                  const priorityConfig = {
+                    high:   { label: "High",   dot: "bg-red-400",    text: "text-red-600",    bg: "bg-red-50 border-red-100"    },
+                    medium: { label: "Medium", dot: "bg-amber-400",  text: "text-amber-600",  bg: "bg-amber-50 border-amber-100"  },
+                    low:    { label: "Low",    dot: "bg-emerald-400",text: "text-emerald-600",bg: "bg-emerald-50 border-emerald-100"},
+                  };
+
+                  const cat = categoryConfig[insight.category] || categoryConfig["Medicine"];
+                  const pri = priorityConfig[insight.priority] || priorityConfig["medium"];
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`group relative bg-gradient-to-br ${cat.gradient} rounded-3xl p-6 border ${cat.border} hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden`}
+                    >
+                      {/* top accent bar */}
+                      <div className={`absolute top-0 left-0 right-0 h-1 ${cat.bar} opacity-60 rounded-t-3xl`} />
+
+                      {/* header */}
+                      <div className="flex items-start justify-between mb-4 mt-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{cat.icon}</span>
+                          <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${cat.badge}`}>
+                            {insight.category}
+                          </span>
+                        </div>
+                        <span className={`flex items-center gap-1.5 text-[11px] font-black px-2.5 py-1 rounded-lg border ${pri.bg} ${pri.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${pri.dot} inline-block`}></span>
+                          {pri.label}
+                        </span>
+                      </div>
+
+                      {/* insight text */}
+                      <p className="text-gray-700 text-sm leading-relaxed font-medium mb-5">
+                        {insight.text}
+                      </p>
+
+                      {/* footer */}
+                      <div className="flex items-center justify-between pt-4 border-t border-white/60">
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-semibold">
+                          <span>💡</span>
+                          <span>AI-Generated</span>
+                        </div>
+                        {insightsLastUpdated && (
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            {new Date(insightsLastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── SUMMARY STRIP ── */}
+          {weeklyInsights.length > 0 && (() => {
+            const now = new Date();
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            const weekSlice = history.filter(h => {
+              const t = new Date(h.time);
+              return t >= sevenDaysAgo && (h.status === "taken" || h.status === "missed");
+            });
+            const taken = weekSlice.filter(h => h.status === "taken").length;
+            const total = weekSlice.length;
+            const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
+            const streak = (() => {
+              const sorted = [...history].sort((a, b) => new Date(b.time) - new Date(a.time));
+              let s = 0;
+              for (const h of sorted) { if (h.status === "taken") s++; else break; }
+              return s;
+            })();
+            const highCount = weeklyInsights.filter(i => i.priority === "high").length;
+
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: "This Week",    value: `${pct}%`,        sub: `${taken}/${total} doses`,     icon: "📊", color: "from-indigo-500 to-blue-600"    },
+                  { label: "Streak",       value: `${streak}`,      sub: "consecutive taken",           icon: "🔥", color: "from-orange-400 to-amber-500"   },
+                  { label: "Insights",     value: `${weeklyInsights.length}`, sub: "personalised tips", icon: "🧠", color: "from-purple-500 to-pink-500"    },
+                  { label: "High Priority",value: `${highCount}`,   sub: "need attention",              icon: "⚡", color: "from-rose-500 to-red-500"       },
+                ].map((s, i) => (
+                  <div key={i} className={`bg-gradient-to-br ${s.color} text-white rounded-2xl p-5 shadow-lg`}>
+                    <div className="text-2xl mb-1">{s.icon}</div>
+                    <div className="text-2xl font-black">{s.value}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/70 mt-0.5">{s.label}</div>
+                    <div className="text-[10px] text-white/60 mt-0.5">{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
         </section>
       )}
 

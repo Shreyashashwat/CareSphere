@@ -1,5 +1,7 @@
 from langchain_core.tools import tool
-from agent.utils.api_client import api_get
+import os
+
+from agent.utils.api_client import api_get, api_post
 
 
 def make_analytics_tools(token: str, user_id: str):
@@ -43,37 +45,38 @@ def make_analytics_tools(token: str, user_id: str):
     @tool
     def get_weekly_insights(dummy_input: str = "") -> str:
         """
-        Get AI-generated weekly health insights based on the user's data.
-        Call this when the user asks for:
-        - "Health insights"
-        - "Weekly report"
-        - "AI analysis of my health"
-        - "Tips to improve"
+        Get AI-generated weekly health insights based on the user's medication data.
+        Call this when the user asks for health insights, weekly report, AI analysis,
+        personalized tips, or how to improve their adherence.
         No input needed — pass an empty string.
         """
         try:
-            result = api_get(f"/api/v1/users/insights/{user_id}", token)
+            # Use the rich insights endpoint — it handles caching + rich LLM prompt
+            result = api_post("/api/weekly-insights/generate", token, body={})
             insights = result.get("insights", [])
 
             if not insights:
                 return (
-                    "No weekly insights are available yet. "
-                    "They are automatically generated each week once you have enough tracking data."
+                    "No insights are available yet. This usually means there isn't "
+                    "enough medication history this week. Keep logging your doses and "
+                    "check back soon! 💙"
                 )
 
+            priority_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}
             lines = []
             for i in insights:
-                priority_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
-                    i.get("priority", "medium"), "🟡"
-                )
-                lines.append(
-                    f"{priority_icon} [{i.get('category', 'General')}] {i.get('text', '')}"
-                )
+                icon = priority_icon.get(i.get("priority", "medium"), "🟡")
+                category = i.get("category", "General")
+                text = i.get("text", "")
+                lines.append(f"{icon} [{category}] {text}")
 
-            return "Your weekly health insights:\n" + "\n".join(lines)
+            from_cache = result.get("fromCache", False)
+            freshness = " (updated just now)" if not from_cache else ""
+
+            return f"Your weekly health insights{freshness}:\n\n" + "\n".join(lines)
 
         except Exception as e:
-            return f"Error fetching insights: {str(e)}"
+            return f"Error fetching weekly insights: {str(e)}"
 
     @tool
     def get_medicine_adherence(medicine_name: str) -> str:
@@ -87,7 +90,6 @@ def make_analytics_tools(token: str, user_id: str):
             return "Please provide a medicine name."
 
         try:
-            
             all_meds = api_get("/api/v1/medicine", token).get("data", [])
             match = next(
                 (m for m in all_meds if m["medicineName"].lower() == medicine_name.strip().lower()),

@@ -88,7 +88,7 @@ connectDB()
 
     // 🔥 TEMPORARY: run training once
     await trainAdherenceModel()
-    await generateWeeklyInsightsForAllUsers()
+    //await generateWeeklyInsightsForAllUsers()
     const PORT = process.env.PORT || 8000;
     app.listen(PORT, () => {
       console.log(`✅ Server is running at ${PORT}`);

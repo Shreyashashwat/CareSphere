@@ -27,11 +27,9 @@ messaging.onBackgroundMessage(function(payload) {
 
   const notificationOptions = {
     body,
-    icon: '/logo192.png',
-    data, // keep all fields for click actions
-    actions: [
-      
-    ]
+    icon: '/vite.svg',
+    data,
+    requireInteraction: true   // keeps notification visible until user clicks
   };
 
   // Show system notification
