@@ -7,6 +7,8 @@ import Doctor from "../model/doctor.js";
 import { Reminder } from "../model/reminderstatus.js";
 import { Medicine } from "../model/medicine.model.js";
 import { Appointment } from "../model/appointment.model.js";
+import { AppointmentReport } from "../model/appointmentReport.model.js";
+import { DailyHealthNote } from "../model/dailyHealthNote.model.js";
 import mongoose from "mongoose";
 
 
@@ -373,6 +375,223 @@ export const getPatientAppointments = async (req, res) => {
 };
 
 
+// ─── Send Appointment Report (Doctor) ───────────────────────────────────────
+const sendAppointmentReport = asyncHandler(async (req, res) => {
+  const doctorId = req.user?._id;
+  const { appointmentId } = req.params;
+  const { patientId, medicines, reviewNotes, reportDate } = req.body;
+
+  if (req.user?.role !== "doctor") {
+    throw new ApiError(403, "Only doctors can send appointment reports");
+  }
+
+  if (!appointmentId || !mongoose.Types.ObjectId.isValid(appointmentId)) {
+    throw new ApiError(400, "Valid appointmentId is required");
+  }
+
+  if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+    throw new ApiError(400, "Valid patientId is required");
+  }
+
+  if (!Array.isArray(medicines) || medicines.length === 0) {
+    throw new ApiError(400, "At least one prescribed medicine is required");
+  }
+
+  if (!reviewNotes || !String(reviewNotes).trim()) {
+    throw new ApiError(400, "Doctor review notes are required");
+  }
+
+  const appointment = await Appointment.findById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(404, "Appointment not found");
+  }
+
+  if (appointment.doctorId.toString() !== doctorId.toString()) {
+    throw new ApiError(403, "You can only create reports for your own appointments");
+  }
+
+  if (appointment.patientId.toString() !== String(patientId)) {
+    throw new ApiError(400, "patientId does not match this appointment");
+  }
+
+  if (appointment.status !== "COMPLETED") {
+    throw new ApiError(400, "Report can be sent only after appointment is completed");
+  }
+
+  if (appointment.reportId) {
+    throw new ApiError(409, "Report already exists for this appointment");
+  }
+
+  const normalizedMedicines = medicines.map((med) => ({
+    medicineName: String(med?.medicineName || "").trim(),
+    dosage: String(med?.dosage || "").trim(),
+    frequency: String(med?.frequency || "").trim(),
+  }));
+
+  const hasInvalidMedicine = normalizedMedicines.some(
+    (med) => !med.medicineName || !med.dosage || !med.frequency
+  );
+  if (hasInvalidMedicine) {
+    throw new ApiError(400, "Each medicine must include medicineName, dosage and frequency");
+  }
+
+  const createdReport = await AppointmentReport.create({
+    appointmentId: appointment._id,
+    patientId: appointment.patientId,
+    doctorId,
+    medicines: normalizedMedicines,
+    reviewNotes: String(reviewNotes).trim(),
+    problem: appointment.problem || "",
+    reportDate: reportDate ? new Date(reportDate) : new Date(),
+  });
+
+  appointment.reportId = createdReport._id;
+  await appointment.save();
+
+  const report = await AppointmentReport.findById(createdReport._id)
+    .populate("patientId", "username email")
+    .populate("doctorId", "username email code")
+    .populate("appointmentId", "appointmentDate problem status");
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, report, "Appointment report sent successfully"));
+});
+
+
+// ─── Get Logged-in Patient Reports ───────────────────────────────────────────
+const getMyReports = asyncHandler(async (req, res) => {
+  if (req.user?.role === "doctor") {
+    throw new ApiError(403, "Only patients can view patient reports");
+  }
+
+  const reports = await AppointmentReport.find({ patientId: req.user._id })
+    .populate("doctorId", "username email code")
+    .populate("appointmentId", "appointmentDate problem status")
+    .sort({ reportDate: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, reports, "Patient reports fetched successfully"));
+});
+
+
+// ─── Mark Report As Read (Patient) ───────────────────────────────────────────
+const markReportAsRead = asyncHandler(async (req, res) => {
+  if (req.user?.role === "doctor") {
+    throw new ApiError(403, "Only patients can update patient reports");
+  }
+
+  const { reportId } = req.params;
+  if (!reportId || !mongoose.Types.ObjectId.isValid(reportId)) {
+    throw new ApiError(400, "Valid reportId is required");
+  }
+
+  const report = await AppointmentReport.findOne({
+    _id: reportId,
+    patientId: req.user._id,
+  })
+    .populate("doctorId", "username email code")
+    .populate("appointmentId", "appointmentDate problem status");
+
+  if (!report) {
+    throw new ApiError(404, "Report not found");
+  }
+
+  if (!report.isRead) {
+    report.isRead = true;
+    await report.save();
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, report, "Report marked as read"));
+});
+
+
+// ─── Get Logged-in Doctor Sent Reports ───────────────────────────────────────
+const getDoctorSentReports = asyncHandler(async (req, res) => {
+  if (req.user?.role !== "doctor") {
+    throw new ApiError(403, "Only doctors can view sent reports");
+  }
+
+  const reports = await AppointmentReport.find({ doctorId: req.user._id })
+    .populate("patientId", "username email")
+    .populate("appointmentId", "appointmentDate problem status")
+    .sort({ reportDate: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, reports, "Doctor sent reports fetched successfully"));
+});
+
+
+// ─── Add Daily Health Note (Patient) ───────────────────────────────────────
+const addDailyHealthNote = asyncHandler(async (req, res) => {
+  if (req.user?.role === "doctor") {
+    throw new ApiError(403, "Only patients can add daily health notes");
+  }
+
+  const note = String(req.body?.note || "").trim();
+  if (!note) {
+    throw new ApiError(400, "Note content is required");
+  }
+
+  const createdNote = await DailyHealthNote.create({
+    patientId: req.user._id,
+    note,
+    noteDate: req.body?.noteDate ? new Date(req.body.noteDate) : new Date(),
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, createdNote, "Daily health note added successfully"));
+});
+
+
+// ─── Get My Daily Health Notes (Patient) ───────────────────────────────────
+const getMyDailyHealthNotes = asyncHandler(async (req, res) => {
+  if (req.user?.role === "doctor") {
+    throw new ApiError(403, "Only patients can view their own daily health notes");
+  }
+
+  const notes = await DailyHealthNote.find({ patientId: req.user._id }).sort({ noteDate: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, notes, "Daily health notes fetched successfully"));
+});
+
+
+// ─── Get Patient Daily Health Notes (Doctor) ───────────────────────────────
+const getPatientDailyHealthNotesForDoctor = asyncHandler(async (req, res) => {
+  if (req.user?.role !== "doctor") {
+    throw new ApiError(403, "Only doctors can view patient daily health notes");
+  }
+
+  const { patientId } = req.params;
+  if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+    throw new ApiError(400, "Valid patientId is required");
+  }
+
+  const isLinked = await DoctorPatientRequest.findOne({
+    doctorId: req.user._id,
+    patientId,
+    status: "ACCEPTED",
+  });
+
+  if (!isLinked) {
+    throw new ApiError(403, "You can only view notes for your linked patients");
+  }
+
+  const notes = await DailyHealthNote.find({ patientId }).sort({ noteDate: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, notes, "Patient daily health notes fetched successfully"));
+});
+
+
 // ─── Named Exports ────────────────────────────────────────────────────────────
 export {
   getPendingRequests,
@@ -384,4 +603,11 @@ export {
   getPatientRequestStatus,
   getPatientRequests,
   scheduleAppointment,
+  sendAppointmentReport,
+  getMyReports,
+  markReportAsRead,
+  getDoctorSentReports,
+  addDailyHealthNote,
+  getMyDailyHealthNotes,
+  getPatientDailyHealthNotesForDoctor,
 };

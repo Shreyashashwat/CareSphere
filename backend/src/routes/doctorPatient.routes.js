@@ -13,6 +13,13 @@ import {
   getDoctorAppointments,
   scheduleAppointment,
   updateAppointmentStatus,
+  sendAppointmentReport,
+  getMyReports,
+  markReportAsRead,
+  getDoctorSentReports,
+  addDailyHealthNote,
+  getMyDailyHealthNotes,
+  getPatientDailyHealthNotesForDoctor,
   
 } from "../controllers/doctorPatient.controller.js";
 
@@ -34,6 +41,14 @@ router.get("/doctor-request/getappointments",verifyJwt,getDoctorAppointments);
 router.post("/doctor-request/appointments/:appointmentId",updateAppointmentStatus)
 router.get("/doctor-request/getappointments/patient",verifyJwt,getPatientAppointments);
 router.get("/doctor-request/doctor-appointments", verifyJwt, getDoctorAppointments);
+router.post("/appointments/:appointmentId/report", verifyJwt, sendAppointmentReport);
+router.get("/reports/my-reports", verifyJwt, getMyReports);
+router.get("/reports/:reportId/read", verifyJwt, markReportAsRead);
+router.get("/reports/doctor-reports", verifyJwt, getDoctorSentReports);
+
+router.post("/daily-notes", verifyJwt, addDailyHealthNote);
+router.get("/daily-notes/my", verifyJwt, getMyDailyHealthNotes);
+router.get("/daily-notes/patient/:patientId", verifyJwt, getPatientDailyHealthNotesForDoctor);
 
 export default router;
 
