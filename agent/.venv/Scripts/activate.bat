@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\caresphere project\CareSphere\agent\.venv
+set VIRTUAL_ENV=C:\Users\HP\Documents\nodejs\Lawyers_diary\CareSphere\agent\.venv
 
 if not defined PROMPT set PROMPT=$P$G
 

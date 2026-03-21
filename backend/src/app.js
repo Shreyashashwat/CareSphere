@@ -49,6 +49,9 @@ app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
 app.use("/api/v1", doctorPatientRoutes);
 app.use("/api/v1", agentDataRoutes);
+
+import testQueueRoutes from "./routes/testQueue.js";
+app.use("/api/test", testQueueRoutes);
 // In your routes file
 app.use("/api", mlRoutes);
 app.use("/api/weekly-insights", weeklyInsightsRoutes);

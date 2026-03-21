@@ -1,4 +1,3 @@
-
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -7,9 +6,22 @@ import { Reminder } from "../model/reminderstatus.js";
 import { Medicine } from "../model/medicine.model.js";
 import { DoctorPatientRequest } from "../model/doctorPatientRequest.model.js";
 import Doctor from "../model/doctor.js";
+import redisClient from "../configs/redisClient.js";
 
 const getDoctorDashboard = asyncHandler(async (req, res) => {
-    const doctorId = req.user;
+    const doctorId = req.user?._id || req.user; 
+    
+    if (!doctorId) throw new ApiError(401, "Unauthorized access");
+
+    const cacheKey = `doctor_dashboard:${doctorId}`;
+
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+        return res.status(200).json(
+            new ApiResponse(200, JSON.parse(cachedData), "Doctor dashboard data fetched from cache")
+        );
+    }
+
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
         throw new ApiError(404, "Doctor not found");
@@ -20,34 +32,26 @@ const getDoctorDashboard = asyncHandler(async (req, res) => {
         status: "ACCEPTED",
     }).populate("patientId", "username email age gender");
 
-    const patientIds = acceptedRequests.map((req) => {
-        const patient = req.patientId;
-        if (patient && patient._id) {
-            return patient._id;
-        }
-        return patient;
-    }).filter(Boolean); 
+    const patientIds = acceptedRequests
+        .map((req) => {
+            const patient = req.patientId;
+            return patient?._id ? patient._id : patient;
+        })
+        .filter(Boolean);
+
     if (patientIds.length === 0) {
+        const emptyState = {
+            stats: { totalPatients: 0, missedToday: 0, takenToday: 0, pendingToday: 0 },
+            todaySchedule: [],
+            patientList: [],
+        };
+        await redisClient.setEx(cacheKey, 300, JSON.stringify(emptyState)); // Cache for 5 mins
         return res.status(200).json(
-            new ApiResponse(
-                200,
-                {
-                    stats: {
-                        totalPatients: 0,
-                        missedToday: 0,
-                        takenToday: 0,
-                        pendingToday: 0,
-                    },
-                    todaySchedule: [],
-                    patientList: [],
-                },
-                "Doctor dashboard data fetched successfully (no patients)"
-            )
+            new ApiResponse(200, emptyState, "Doctor dashboard data fetched (no patients)")
         );
     }
 
-    const patients = await User.find({ _id: { $in: patientIds } })
-        .select("-password");
+    const patients = await User.find({ _id: { $in: patientIds } }).select("-password");
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -85,13 +89,15 @@ const getDoctorDashboard = asyncHandler(async (req, res) => {
         };
     });
 
+    const finalResponse = {
+        stats,
+        todaySchedule: todayReminders,
+        patientList: patientAdherence,
+    };
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(finalResponse));
+
     return res.status(200).json(
-        new ApiResponse(200, {
-            stats,
-            todaySchedule: todayReminders,
-            patientList: patientAdherence,
-        
-        }, "Doctor dashboard data fetched successfully")
+        new ApiResponse(200, finalResponse, "Doctor dashboard data fetched successfully")
     );
 });
 

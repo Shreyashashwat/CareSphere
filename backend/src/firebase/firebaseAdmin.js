@@ -70,10 +70,8 @@ let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 if (!projectId || !clientEmail || !privateKey) {
   console.warn("WARNING: Firebase environment variables missing. Firebase Admin not initialized.");
 } else {
-  // Replace literal "\n" (two characters) with real newlines
   privateKey = privateKey.replace(/\\n/g, "\n");
 
-  // Build the service account object
   const serviceAccount = {
     project_id: projectId,
     client_email: clientEmail,
