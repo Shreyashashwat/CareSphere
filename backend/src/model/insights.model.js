@@ -1,9 +1,12 @@
 import mongoose from "mongoose";
 
 const InsightSchema = new mongoose.Schema({
-  text:     { type: String, required: true },
-  category: { type: String, required: true },
-  priority: { type: String, enum: ["low", "medium", "high"], default: "medium" }
+  title:      { type: String, default: "" },
+  metric:     { type: String, default: "" },
+  suggestion: { type: String, default: "" },
+  text:       { type: String, default: "" },
+  category:   { type: String, required: true },
+  priority:   { type: String, enum: ["low", "medium", "high"], default: "medium" }
 }, { _id: false });
 
 const WeekTrendSchema = new mongoose.Schema({

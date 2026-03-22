@@ -12,7 +12,8 @@ const getTimeSlot = (hour) => {
   return "night";
 };
 
-const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+// const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour (production)
+const COOLDOWN_MS = 0; // disabled for testing
 
 const buildRichStats = async (userId) => {
   const now          = new Date();
