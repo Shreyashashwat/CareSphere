@@ -27,6 +27,15 @@ import {
   getMyDailyHealthNotes,
 } from "../api";
 
+const filterOutPreReminders = (list) =>
+  list.filter(item => {
+    const itemTime = new Date(item.time).getTime();
+    return !list.some(r => {
+      const diff = new Date(r.time).getTime() - itemTime;
+      return diff === 900000 &&
+        (r.medicineId?._id || r.medicineId) === (item.medicineId?._id || item.medicineId);
+    });
+  });
 const Patient = () => {
   const navigate = useNavigate();
 
@@ -43,6 +52,10 @@ const Patient = () => {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [weeklyInsights, setWeeklyInsights] = useState([]);
+  const [weeklyTrend, setWeeklyTrend] = useState([]);
+  const [insightsMeta, setInsightsMeta] = useState(null); // { adherenceRate, weeklyTrendLabel, streak, mostMissedTime, worstMedicine }
+  const [generatingInsights, setGeneratingInsights] = useState(false);
+  const [cooldownMins, setCooldownMins] = useState(null);
   const [patientReports, setPatientReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
 
@@ -90,14 +103,64 @@ const Patient = () => {
 
   const isResolvedDose = (status) => status === "taken" || status === "missed";
 
+  // -------------------- AUTH HELPER --------------------
+  const getAuthToken = () => {
+    const stored = localStorage.getItem('user');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    return parsed?.data?.token || parsed?.token || null;
+  };
+
   // -------------------- FETCHERS --------------------
   const fetchWeeklyInsights = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/weekly-insights/${user._id}`);
+      const token = getAuthToken();
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/weekly-insights/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       setWeeklyInsights(data?.insights || []);
+      setWeeklyTrend(data?.weeklyTrend || []);
+       if (data?.adherenceRate !== undefined) {
+      setInsightsMeta({
+        adherenceRate:    data.adherenceRate,
+        weeklyTrendLabel: data.weeklyTrendLabel,
+        streak:           data.streak,
+        mostMissedTime:   data.mostMissedTime,
+        worstMedicine:    data.worstMedicine,
+      });
+    }
     } catch (err) {
-      console.error("Failed to fetch weekly insights", err);
+      console.error('Failed to fetch weekly insights', err);
+    }
+  };
+
+  const handleGenerateInsights = async () => {
+    setGeneratingInsights(true);
+    try {
+      const token = getAuthToken();
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/weekly-insights/generate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setWeeklyInsights(data?.insights || []);
+      setWeeklyTrend(data?.weeklyTrend || []);
+     setInsightsMeta({
+        adherenceRate:    data?.adherenceRate,
+        weeklyTrendLabel: data?.weeklyTrendLabel,
+        streak:           data?.streak,
+        mostMissedTime:   data?.mostMissedTime,
+        worstMedicine:    data?.worstMedicine,
+      });
+      if (data?.cooldownRemaining) setCooldownMins(data.cooldownRemaining);
+      else setCooldownMins(null);
+    } catch (err) {
+      console.error('Failed to generate insights', err);
+    } finally {
+      setGeneratingInsights(false);
     }
   };
 
@@ -1870,33 +1933,114 @@ const fetchHistoryData = async () => {
           </div>
         </section>
         
-      ) : (
-        /* HEALTH INSIGHTS - ENHANCED */
-        <section className="max-w-[1400px] mx-auto px-4 sm:px-5 py-7">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
-              🧠
+      ) : activeTab === "insights" ? (
+        /* HEALTH INSIGHTS - UPGRADED */
+        <section className="max-w-[1400px] mx-auto px-4 sm:px-5 py-7 space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg">🧠</div>
+              <div>
+                <h2 className="text-3xl font-black bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">AI Health Insights</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Powered by your medication data — updated on demand</p>
+              </div>
             </div>
-            <h2 className="text-3xl font-black bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">
-              AI Health Insights
-            </h2>
+           <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleGenerateInsights}
+                disabled={generatingInsights}
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold shadow-lg shadow-purple-200 hover:shadow-xl hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300"
+              >
+                {generatingInsights ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+                ) : (
+                  <><span>✨</span> Generate Insights</>
+                )}
+              </button>
+              {cooldownMins && (
+                <p className="text-xs text-gray-400">Next refresh available in {cooldownMins} min</p>
+              )}
+            </div>
           </div>
-          
+
+          {/* Meta stat cards — shown once insights have been generated */}
+          {insightsMeta && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {[
+                { label: 'Adherence',    value: `${insightsMeta.adherenceRate ?? '--'}%`, icon: '🎯', color: 'from-emerald-400 to-teal-500' },
+                { label: 'Trend',        value: insightsMeta.weeklyTrendLabel ?? '--',      icon: '📈', color: 'from-blue-400 to-indigo-500' },
+                { label: 'Streak',       value: `${insightsMeta.streak ?? 0} doses`,        icon: '🔥', color: 'from-orange-400 to-red-500' },
+                { label: 'Missed Most',  value: insightsMeta.mostMissedTime ?? '--',         icon: '⏰', color: 'from-violet-400 to-purple-500' },
+                { label: 'Needs Work',   value: insightsMeta.worstMedicine ?? 'N/A',         icon: '💊', color: 'from-rose-400 to-pink-500' },
+              ].map((c, i) => (
+                <div key={i} className={`bg-gradient-to-br ${c.color} rounded-2xl p-4 text-white shadow-md`}>
+                  <div className="text-2xl mb-1">{c.icon}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest opacity-80">{c.label}</div>
+                  <div className="text-base font-black leading-tight mt-0.5 truncate">{c.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 4-week trend chart */}
+   {weeklyTrend.length > 0 && (
+  <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100">
+    <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-6">📊 4-Week Adherence Trend</h3>
+    <div className="flex items-center justify-around gap-4">
+      {weeklyTrend.map((w, i) => {
+        const size = 90;
+        const radius = 36;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (w.pct / 100) * circumference;
+        const color = w.pct >= 80 ? '#10b981' : w.pct >= 50 ? '#f59e0b' : '#ef4444';
+        const bgColor = w.pct >= 80 ? '#d1fae5' : w.pct >= 50 ? '#fef3c7' : '#fee2e2';
+        return (
+          <div key={i} className="flex flex-col items-center gap-3">
+            <div className="relative" style={{ width: size, height: size }}>
+              <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx={size/2} cy={size/2} r={radius} fill={bgColor} stroke="none" />
+                <circle
+                  cx={size/2} cy={size/2} r={radius}
+                  fill="transparent"
+                  stroke={color}
+                  strokeWidth="8"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-lg font-black" style={{ color }}>{w.pct}%</span>
+              </div>
+            </div>
+            <span className="text-[11px] text-gray-500 font-bold text-center whitespace-nowrap">{w.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
+          {/* Insight cards */}
           {weeklyInsights.length === 0 ? (
             <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-20 text-center shadow-lg">
-              <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl">
-                🤖
-              </div>
-              <h3 className="text-xl font-bold text-gray-700 mb-2">Analyzing Your Health Data</h3>
-              <p className="text-gray-400 max-w-md mx-auto">
-                Our AI is processing your medication history. Check back in a few days for personalized weekly insights.
-              </p>
+              <div className="w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl">🤖</div>
+              <h3 className="text-xl font-bold text-gray-700 mb-2">No insights yet</h3>
+              <p className="text-gray-400 max-w-md mx-auto mb-6">Hit <strong>Generate Insights</strong> above to get personalized AI recommendations based on your medication data.</p>
+              <button
+                onClick={handleGenerateInsights}
+                disabled={generatingInsights}
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold shadow-lg disabled:opacity-60 transition-all"
+              >
+                {generatingInsights ? 'Generating...' : '✨ Generate Now'}
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {weeklyInsights.map((insight, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className="group bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -1904,13 +2048,11 @@ const fetchHistoryData = async () => {
                       {insight.category}
                     </span>
                     <span className={`text-xs font-black px-3 py-1.5 rounded-xl ${
-                      insight.priority === "high" 
-                        ? "bg-red-50 text-red-600 border border-red-100" 
-                        : insight.priority === "medium" 
-                        ? "bg-yellow-50 text-yellow-600 border border-yellow-100" 
-                        : "bg-green-50 text-green-600 border border-green-100"
+                      insight.priority === 'high'   ? 'bg-red-50 text-red-600 border border-red-100'
+                      : insight.priority === 'medium' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100'
+                      : 'bg-green-50 text-green-600 border border-green-100'
                     }`}>
-                      {insight.priority.toUpperCase()}
+                      {insight.priority?.toUpperCase()}
                     </span>
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed font-medium">{insight.text}</p>
@@ -1925,7 +2067,7 @@ const fetchHistoryData = async () => {
             </div>
           )}
         </section>
-      )}
+      ) : null}
 
       {/* APPOINTMENT MODAL - ENHANCED */}
       {showAptModal && (

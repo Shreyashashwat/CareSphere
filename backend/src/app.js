@@ -12,6 +12,7 @@ import googleAuth from "./routes/googleapis.routes.js"
 import googleCalendarRoutes from "./routes/googleCalender.routes.js";
 import doctorPatientRoutes from "./routes/doctorPatient.routes.js";
 import mlRoutes from "./routes/ml.routes.js"
+import weeklyInsightsRoutes from "./routes/weeklyInsights.routes.js"
 import { createRemindersCron } from "./firebase/remindercreationfile.js"
 import { sendnoti } from "./firebase/SendNotification.js"
 
@@ -50,6 +51,7 @@ app.use("/api/v1", doctorPatientRoutes);
 app.use("/api/v1", agentDataRoutes);
 // In your routes file
 app.use("/api", mlRoutes);
+app.use("/api/weekly-insights", weeklyInsightsRoutes);
 sendnoti()
 createRemindersCron();
 
