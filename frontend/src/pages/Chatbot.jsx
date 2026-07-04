@@ -23,13 +23,14 @@ function ChatWidget() {
   }, [messages]);
 
   const toggleChat = () => setIsOpen((prev) => !prev);
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
 
   const startNewChat = async () => {
     try {
       await axios.delete(
-        `http://localhost:8001/api/v1/chatbot/session/${sessionId.current}`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
+  `${API_BASE}/chatbot/session/${sessionId.current}`,
+  { headers: { Authorization: `Bearer ${authToken}` } }
+);
     } catch (e) {}
     sessionId.current = uuidv4();
     setMessages([]);
@@ -45,21 +46,11 @@ function ChatWidget() {
     setIsLoading(true);
 
     try {
-      const resp = await axios.post(
-        "http://localhost:8001/api/v1/chatbot",
-        {
-          userId,
-          message: currentInput,       
-          sessionId: sessionId.current, 
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
+     const resp = await axios.post(
+  `${API_BASE}/chatbot`,
+  { userId, message: currentInput, sessionId: sessionId.current },
+  { headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" } }
+);
       setMessages((msgs) => [...msgs, { from: "bot", text: resp.data.reply }]);
 
       // Notify patient page to re-fetch medicines/reminders/history after chat actions.

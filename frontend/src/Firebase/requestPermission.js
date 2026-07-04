@@ -28,7 +28,7 @@ export const requestPermission = async (userId) => {
     console.log("FCM Token:", token);
 
     // Send token to backend
-    const response = await axios.post(`${API_BASE}/api/v1/save-token`, {
+    const response = await axios.post(`${API_BASE}save-token`, {
       userId,
       token,
     });
