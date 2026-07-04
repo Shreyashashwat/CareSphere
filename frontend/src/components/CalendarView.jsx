@@ -28,7 +28,7 @@ const toLocalDateStr = (date) => {
           return;
         }
 
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
+      const apiBase = import.meta.env.VITE_API_URL || "https://caresphere-hrro.onrender.com/api/v1";
 const res = await fetch(`${apiBase}/google/events`, {
           method: "GET",
           headers: {

@@ -10,7 +10,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     startDate: "",
     endDate: "",
   });
-
+const apiBase = import.meta.env.VITE_API_URL;
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!!medicine?._id);
   const [medicineValid, setMedicineValid] = useState(true);
@@ -54,10 +54,8 @@ const MedicineForm = ({ onSuccess, medicine }) => {
       setCheckingMedicine(true);
       try {
         const res = await fetch(
-          `http://localhost:8001/api/v1/medicine/validate-medicine/${encodeURIComponent(
-            name
-          )}`
-        );
+  `${apiBase}/medicine/validate-medicine/${encodeURIComponent(name)}`
+);
         const data = await res.json();
         setMedicineValid(data.valid);
       } catch (err) {

@@ -1,6 +1,8 @@
 import React from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+  const apiBase =
+    import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
 
 const MedicineReminderToast = ({ title, body, medicineId }) => {
   const snoozeMinutes = 10;
@@ -8,7 +10,7 @@ const MedicineReminderToast = ({ title, body, medicineId }) => {
   const handleSnooze = async () => {
     try {
       await axios.patch(
-        `http://localhost:8001/api/v1/medicine/${medicineId}/snooze`,
+        `${apiBase}/medicine/${medicineId}/snooze`,
         { minutes: snoozeMinutes }
       );
       toast.dismiss(); // close current toast
