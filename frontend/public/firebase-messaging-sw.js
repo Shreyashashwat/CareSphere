@@ -44,8 +44,12 @@ self.addEventListener('notificationclick', function(event) {
 
   if (event.action === 'snooze' && medicineId) {
     // Call backend to snooze the reminder
+    const backendUrl = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'https://caresphere-hrro.onrender.com';
+    
     event.waitUntil(
-      fetch(`http://localhost:8000/api/v1/medicine/${medicineId}/snooze`, {
+      fetch(`${backendUrl}/api/v1/medicine/${medicineId}/snooze`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ minutes: 10 })

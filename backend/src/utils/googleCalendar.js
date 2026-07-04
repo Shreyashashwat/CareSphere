@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { Calendar } from "../model/calendar.model.js";
+import { getGoogleOAuthRedirectUri } from "./googleOAuth.js";
 
 export async function addMedicineToGoogleCalendar(calendarData, medicine, doseTime) {
   console.log("Using tokens:", calendarData.accessToken, calendarData.refreshToken, calendarData.expiryDate);
@@ -7,7 +8,7 @@ export async function addMedicineToGoogleCalendar(calendarData, medicine, doseTi
   const auth = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    "http://localhost:8000/api/v1/oauth2callback"
+    getGoogleOAuthRedirectUri()
   );
 
   auth.setCredentials({
@@ -63,7 +64,7 @@ export async function updateMedicineInGoogleCalendar(reminder, calendarData, new
   const auth = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    "http://localhost:8000/api/v1/oauth2callback"
+    getGoogleOAuthRedirectUri()
   );
 
   auth.setCredentials({

@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import { User } from "../model/user.model.js";
 import { Calendar } from "../model/calendar.model.js";
 import { Reminder } from "../model/reminderstatus.js";
+import { getGoogleOAuthRedirectUri } from "../utils/googleOAuth.js";
 
 export const getWebsiteGoogleEvents = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ export const getWebsiteGoogleEvents = async (req, res) => {
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      "http://localhost:8000/api/v1/oauth2callback"
+      getGoogleOAuthRedirectUri()
     );
 
     auth.setCredentials({

@@ -4,13 +4,14 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { Calendar } from "../model/calendar.model.js";
 import { User } from "../model/user.model.js";
+import { getGoogleOAuthRedirectUri } from "../utils/googleOAuth.js";
 
 const router = express.Router();
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  "http://localhost:8000/api/v1/oauth2callback"
+  getGoogleOAuthRedirectUri()
 );
 
 // STEP 1a: Login flow (no token)
@@ -74,7 +75,7 @@ router.get("/oauth2callback", async (req, res) => {
         { upsert: true }
       );
 
-      return res.redirect(`http://localhost:5173/patient?calendarConnected=true`);
+      return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/patient?calendarConnected=true`);
     }
 
     // ── LOGIN FLOW ──
@@ -86,7 +87,7 @@ router.get("/oauth2callback", async (req, res) => {
       console.log(`❌ No user found with email: ${data.email}`);
       // User doesn't exist - redirect to login with error
       return res.redirect(
-        `http://localhost:5173/?error=${encodeURIComponent("Account not found. Please register with your email first.")}`
+        `${process.env.FRONTEND_URL || "http://localhost:5173"}/?error=${encodeURIComponent("Account not found. Please register with your email first.")}`
       );
     }
     
@@ -110,7 +111,7 @@ router.get("/oauth2callback", async (req, res) => {
     );
 
     res.redirect(
-     `http://localhost:5173/google-success?token=${jwtToken}&userId=${user._id}&username=${encodeURIComponent(user.username)}&role=${user.role || "user"}`
+     `${process.env.FRONTEND_URL || "http://localhost:5173"}/google-success?token=${jwtToken}&userId=${user._id}&username=${encodeURIComponent(user.username)}&role=${user.role || "user"}`
     );
 
   } catch (err) {

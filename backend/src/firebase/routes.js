@@ -2,13 +2,14 @@ import express from "express";
 import { google } from "googleapis";
 import jwt from "jsonwebtoken";
 import { User } from "../model/user.model.js";
+import { getGoogleOAuthRedirectUri } from "../utils/googleOAuth.js";
 
 const router = express.Router();
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  "http://localhost:8000/api/v1/oauth2callback"
+  getGoogleOAuthRedirectUri()
 );
 
 router.get("/auth/google", (req, res) => {
@@ -63,7 +64,7 @@ router.get("/oauth2callback", async (req, res) => {
     );
 
     res.redirect(
-      `http://localhost:5174/google-success?token=${jwtToken}&userId=${user._id}&username=${encodeURIComponent(user.username)}`
+      `${process.env.FRONTEND_URL || "http://localhost:5174"}/google-success?token=${jwtToken}&userId=${user._id}&username=${encodeURIComponent(user.username)}`
     );
   } catch (err) {
     console.error(err);

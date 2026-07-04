@@ -17,14 +17,21 @@ app = FastAPI(
     version="1.0.0",
 )
 
+import os
+
+_allowed_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGIN", "http://localhost:8000,http://localhost:5173").split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://localhost:5173"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["POST", "GET", "DELETE"],
     allow_headers=["*"],
 )
-
 
 class ChatMessage(BaseModel):
     role: str
