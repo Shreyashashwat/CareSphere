@@ -116,7 +116,8 @@ const Patient = () => {
     try {
       const token = getAuthToken();
       const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1').replace(/\/api\/v1\/?$/, '');
-      const res = await fetch(`${API_ORIGIN}/api/weekly-insights/me`, {
+      const res = await fetch("https://caresphere-hrro.onrender.com/api/weekly-insights/me"
+, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -140,8 +141,9 @@ const Patient = () => {
     setGeneratingInsights(true);
     try {
       const token = getAuthToken();
-     const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1').replace(/\/api\/v1\/?$/, '');
-      const res = await fetch(`${API_BASE}/api/weekly-insights/generate`, {
+      const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1').replace(/\/api\/v1\/?$/, '');
+      const res = await fetch("https://caresphere-hrro.onrender.com/api/weekly-insights/generate"
+, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
