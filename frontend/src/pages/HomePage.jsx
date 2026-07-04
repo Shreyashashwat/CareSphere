@@ -62,7 +62,7 @@ const HomePage = () => {
 
   const handleGoogleLogin = () => {
     // Redirect directly to backend Google OAuth
-    window.location.href = "http://localhost:8000/api/v1/auth/google";
+    window.location.href = "http://localhost:8001/api/v1/auth/google";
   };
 
   // ------------------- Login Logic -------------------
@@ -88,7 +88,7 @@ const HomePage = () => {
         // Patient Flow: Optional Google Auth Check
         if (!user.hasGoogleAccount) {
            // If your app requires Google link immediately:
-           // window.location.href = `http://localhost:8000/api/v1/auth/google?token=${token}`;
+           // window.location.href = `http://localhost:8001/api/v1/auth/google?token=${token}`;
            // return;
         }
         navigate("/patient");

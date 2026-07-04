@@ -28,7 +28,7 @@ const toLocalDateStr = (date) => {
           return;
         }
 
-        const res = await fetch("http://localhost:8000/api/v1/google/events", {
+        const res = await fetch("http://localhost:8001/api/v1/google/events", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -134,7 +134,7 @@ const toLocalDateStr = (date) => {
     onClick={() => {
       const user = JSON.parse(localStorage.getItem("user"));
       window.location.href = 
-        `http://localhost:8000/api/v1/auth/google/connect-calendar?token=${user.token}`;
+        `http://localhost:8001/api/v1/auth/google/connect-calendar?token=${user.token}`;
     }}
     className="mt-3 flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg active:scale-95"
   >

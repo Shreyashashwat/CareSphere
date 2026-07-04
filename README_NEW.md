@@ -173,7 +173,7 @@ SMTP_PASS=your_app_password
 
 **Frontend (.env)**
 ```env
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_API_BASE_URL=http://localhost:8001/api/v1
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id

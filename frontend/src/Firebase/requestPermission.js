@@ -3,6 +3,8 @@ import { getToken } from "firebase/messaging";
 import { messaging } from "./firebase";
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+
 export const requestPermission = async (userId) => {
   console.log("Requesting notification permission...");
 
@@ -26,7 +28,7 @@ export const requestPermission = async (userId) => {
     console.log("FCM Token:", token);
 
     // Send token to backend
-    const response = await axios.post("http://localhost:8000/api/v1/save-token", {
+    const response = await axios.post(`${API_BASE}/api/v1/save-token`, {
       userId,
       token,
     });

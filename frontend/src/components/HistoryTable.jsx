@@ -13,7 +13,7 @@ const HistoryTable = ({ history: externalHistory }) => {
     console.log("📥 [HistoryTable] externalHistory prop:", externalHistory);
     console.log("📥 [HistoryTable] Is externalHistory an array?", Array.isArray(externalHistory));
 
-    // If history is passed as prop from parent, use it
+
     if (externalHistory && Array.isArray(externalHistory)) {
       console.log("✅ [HistoryTable] Using externalHistory prop, length:", externalHistory.length);
       console.log("📋 [HistoryTable] externalHistory sample (first item):", externalHistory[0]);
@@ -24,7 +24,7 @@ const HistoryTable = ({ history: externalHistory }) => {
 
     console.log("🌐 [HistoryTable] No valid externalHistory — falling back to fetchHistory()");
 
-    // Otherwise fetch it
+
     const loadHistory = async () => {
       try {
         console.log("📡 [HistoryTable] Calling fetchHistory()...");
@@ -34,7 +34,7 @@ const HistoryTable = ({ history: externalHistory }) => {
         console.log("📦 [HistoryTable] res.data:", res?.data);
         console.log("📦 [HistoryTable] typeof res.data:", typeof res?.data);
 
-        // Handle multiple possible response structures
+       
         let historyData = [];
 
         console.log("🔍 [HistoryTable] Checking response structure...");

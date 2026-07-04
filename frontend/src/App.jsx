@@ -40,11 +40,14 @@ function ChatbotWrapper() {
   return <ChatWidget userId={user._id} authToken={token} />;
 }
 
-function App() {
-  useEffect(() => {
-    if (!messaging) return;
+function PatientNotificationListener() {
+  const location = useLocation();
 
-    // onMessage returns an unsubscribe function — calling it removes the listener
+  useEffect(() => {
+    const isPatientPage = location.pathname === "/patient";
+    if (!messaging || !isPatientPage) return;
+
+    // Register foreground notifications only on patient page.
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log("✅ [FOREGROUND] FCM message received:", payload);
 
@@ -64,20 +67,24 @@ function App() {
       );
     });
 
-    console.log("✅ [SETUP] Foreground notification listener registered");
+    console.log("✅ [SETUP] Foreground notification listener registered on /patient");
 
-    // Cleanup: removes the listener when component unmounts or re-renders (HMR)
     return () => {
       unsubscribe();
       console.log("🧹 [CLEANUP] Foreground notification listener removed");
     };
-  }, []);
+  }, [location.pathname]);
 
+  return null;
+}
+
+function App() {
   return (
     <UserProvider>
       <Router>
         <Header />
         <Messaging /> {/* Requests notification permission */}
+        <PatientNotificationListener />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />

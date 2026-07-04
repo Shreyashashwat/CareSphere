@@ -259,36 +259,36 @@ export const generateWeeklyInsightsForAllUsers = async () => {
   let users;
   try {
     users = await User.find({}, { _id: 1 });
-    console.log(`👥 Found ${users.length} users`);
+    console.log(`Found ${users.length} users`);
   } catch (err) {
-    console.error("❌ Failed to fetch users:", err);
+    console.error("Failed to fetch users:", err);
     return;
   }
 
   for (const user of users) {
-    console.log(`\n➡️ Processing user: ${user._id}`);
+    console.log(`\n Processing user: ${user._id}`);
     try {
       await processUserWeeklyInsights(user._id);
-      console.log(`✅ Done for user: ${user._id}`);
+      console.log(`Done for user: ${user._id}`);
     } catch (err) {
       console.error(
-        `❌ Error processing user ${user._id}:`,
+        ` Error processing user ${user._id}:`,
         err.message,
         err.stack
       );
     }
   }
 
-  console.log("🏁 Weekly insights job finished");
+  console.log("Weekly insights job finished");
 };
 
 export const processUserWeeklyInsights = async (userId) => {
-  console.log("🧠 processUserWeeklyInsights START", userId);
+  console.log("processUserWeeklyInsights START", userId);
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  console.log("📅 Fetching reminder data since:", sevenDaysAgo.toISOString());
+  console.log("Fetching reminder data since:", sevenDaysAgo.toISOString());
 
   // ---------------- REMINDER LOGS (SOURCE OF TRUTH) ----------------
   let reminderLogs;
@@ -298,14 +298,14 @@ export const processUserWeeklyInsights = async (userId) => {
       time: { $gte: sevenDaysAgo }
     }).populate("medicineId");
 
-    console.log(`⏰ Reminder logs found: ${reminderLogs.length}`);
+    console.log(`Reminder logs found: ${reminderLogs.length}`);
   } catch (err) {
-    console.error("❌ Error fetching reminder logs:", err);
+    console.error("Error fetching reminder logs:", err);
     throw err;
   }
 
   if (reminderLogs.length === 0) {
-    console.log("⚠️ No reminder logs → skipping user");
+    console.log("No reminder logs → skipping user");
     return;
   }
 
@@ -315,11 +315,11 @@ export const processUserWeeklyInsights = async (userId) => {
     r.status === "taken" || r.status === "missed"
   );
   
-  console.log(`📊 Total reminders: ${reminderLogs.length}, Resolved: ${resolvedReminders.length}`);
+  console.log(`Total reminders: ${reminderLogs.length}, Resolved: ${resolvedReminders.length}`);
 
   // Skip if no resolved reminders (all are pending/future)
   if (resolvedReminders.length === 0) {
-    console.log("⚠️ No resolved reminders (all pending) → skipping user");
+    console.log("No resolved reminders (all pending) → skipping user");
     return;
   }
 
@@ -329,12 +329,10 @@ export const processUserWeeklyInsights = async (userId) => {
 
   const adherence = Math.round((taken / total) * 100);
 
-  // Get missed times and analyze patterns
   const missedReminders = resolvedReminders.filter(r => r.status === "missed");
   
   let mostMissedTime = "none";
   if (missedReminders.length > 0) {
-    // Group by hour to find most common missed time
     const hourCounts = {};
     missedReminders.forEach(r => {
       const hour = new Date(r.time).getHours();
@@ -352,7 +350,7 @@ export const processUserWeeklyInsights = async (userId) => {
     }
   }
 
-  console.log("📈 Aggregated values:", {
+  console.log("Aggregated values:", {
     total,
     taken,
     missed,
@@ -361,9 +359,8 @@ export const processUserWeeklyInsights = async (userId) => {
     pendingCount: reminderLogs.length - resolvedReminders.length
   });
 
-  // Validate data makes sense
   if (taken + missed !== total) {
-    console.error("❌ Data inconsistency detected:", { taken, missed, total });
+    console.error("Data inconsistency detected:", { taken, missed, total });
     throw new Error("Data validation failed: taken + missed !== total");
   }
 
@@ -375,21 +372,21 @@ export const processUserWeeklyInsights = async (userId) => {
     most_missed_time: mostMissedTime
   };
 
-  console.log("🧾 Weekly summary to send to LLM:", weeklySummary);
+  console.log("Weekly summary to send to LLM:", weeklySummary);
 
   // ---------------- LLM CALL ----------------
   let llmResponse;
   try {
     llmResponse = await callLLM(weeklySummary);
-    console.log("🤖 LLM raw response:", llmResponse);
+    console.log("LLM raw response:", llmResponse);
   } catch (err) {
-    console.error("❌ LLM call failed:", err.message);
-    console.error("📦 Data sent to LLM:", weeklySummary);
+    console.error("LLM call failed:", err.message);
+    console.error("Data sent to LLM:", weeklySummary);
     throw err;
   }
 
   if (!llmResponse || !Array.isArray(llmResponse.insights)) {
-    console.error("❌ Invalid LLM response format:", llmResponse);
+    console.error("Invalid LLM response format:", llmResponse);
     throw new Error("Invalid LLM response");
   }
 
@@ -402,24 +399,24 @@ export const processUserWeeklyInsights = async (userId) => {
       },
       {
         insights: llmResponse.insights,
-        created_at: new Date()  // Update timestamp on regeneration
+        created_at: new Date() 
       },
       {
-        upsert: true,  // Create if doesn't exist
-        new: true,     // Return the updated document
+        upsert: true,  
+        new: true,     
         setDefaultsOnInsert: true
       }
     );
     
 
 
-    console.log("💾 WeeklyInsight saved:", doc._id);
+    console.log("WeeklyInsight saved:", doc._id);
   } catch (err) {
-    console.error("❌ Failed to save WeeklyInsight:", err);
+    console.error("Failed to save WeeklyInsight:", err);
     throw err;
   }
 
-  console.log("🎉 processUserWeeklyInsights COMPLETE", userId);
+  console.log("processUserWeeklyInsights COMPLETE", userId);
 };
 
 // GET endpoint to fetch weekly insights for a user
@@ -435,7 +432,8 @@ export const getUserWeeklyInsights = async (req, res) => {
     if (insights.length > 0) {
       return res.json({
         success: true,
-        insights: insights[0].insights, // Return the insights array from the most recent document
+        insights: insights[0].insights, 
+        // Return the insights array from the most recent document
         week: insights[0].week,
         created_at: insights[0].created_at
       });

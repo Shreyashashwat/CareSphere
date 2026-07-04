@@ -13,18 +13,33 @@ import googleCalendarRoutes from "./routes/googleCalender.routes.js";
 import doctorPatientRoutes from "./routes/doctorPatient.routes.js";
 import mlRoutes from "./routes/ml.routes.js"
 import weeklyInsightsRoutes from "./routes/weeklyInsights.routes.js"
-import { createRemindersCron } from "./firebase/remindercreationfile.js"
-import { sendnoti } from "./firebase/SendNotification.js"
 
 
 import dotenv from "dotenv";
 dotenv.config();
 
 const app = express()
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map(o => o.trim()).filter(Boolean)
+  : [];
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      return callback(null, origin);
+    }
+
+    return callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
-}))
+};
+
+app.use(cors(corsOptions))
+app.options(/.*/, cors(corsOptions))
 app.use(express.json({ limit: "16kb" }))
 app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 app.use(express.static("public"))
@@ -49,10 +64,11 @@ app.use("/api/v1", googleAuth)
 app.use("/api/v1/google", googleCalendarRoutes);
 app.use("/api/v1", doctorPatientRoutes);
 app.use("/api/v1", agentDataRoutes);
+
+import testQueueRoutes from "./routes/testQueue.js";
+app.use("/api/test", testQueueRoutes);
 // In your routes file
 app.use("/api", mlRoutes);
 app.use("/api/weekly-insights", weeklyInsightsRoutes);
-sendnoti()
-createRemindersCron();
 
 export default app

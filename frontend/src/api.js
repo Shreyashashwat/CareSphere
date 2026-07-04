@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1",
 
 });
 
@@ -21,7 +21,6 @@ export const registerUser = (data) => API.post("/users/register", data);
 
 export const getMedicines = () => API.get("/medicine");
 export const addMedicine = (data) => API.post("/medicine", data);
-// Doctor / Connectivity APIs
 export const getAllDoctors = () => API.get("/doctors");
 // export const sendDoctorRequest = (doctorId) => API.post("/users/request-doctor", { doctorId });
 // export const getPatientRequests = () => API.get("/users/patient-requests");

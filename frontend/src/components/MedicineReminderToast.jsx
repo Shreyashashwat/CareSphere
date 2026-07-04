@@ -8,7 +8,7 @@ const MedicineReminderToast = ({ title, body, medicineId }) => {
   const handleSnooze = async () => {
     try {
       await axios.patch(
-        `http://localhost:8000/api/v1/medicine/${medicineId}/snooze`,
+        `http://localhost:8001/api/v1/medicine/${medicineId}/snooze`,
         { minutes: snoozeMinutes }
       );
       toast.dismiss(); // close current toast

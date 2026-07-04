@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import app from "./app.js";
 import { sendnoti } from "./firebase/SendNotification.js";
+import { createRemindersCron } from "./firebase/remindercreationfile.js";
 import cron from "node-cron";
 import { User } from "./model/user.model.js";
 import { trainAdherenceModel } from "./ml/train.js";
@@ -72,20 +73,28 @@ console.log("📊 Weekly retraining job started...");
 });;
 // Weekly insights cron removed — insights are now generated on-demand
 // via POST /api/weekly-insights/generate (JWT-secured, per-user)
+const PORT = process.env.PORT || 8001;
+app.listen(PORT, () => {
+  console.log(`✅ Server is running at ${PORT}`);
+  sendnoti();
+  createRemindersCron();
+});
+
 connectDB()
-  .then(async () => {
-    console.log("🟢 MongoDB connected, starting one-time ML training...");
+  .then(() => {
+    console.log("🟢 MongoDB connected, starting background startup tasks...");
 
-    // 🧹 Clean up duplicate reminders from old buggy cron runs
-    await cleanupDuplicateReminders();
-
-    // 🔥 TEMPORARY: run training once
-    await trainAdherenceModel()
-    const PORT = process.env.PORT || 8000;
-    app.listen(PORT, () => {
-      console.log(`✅ Server is running at ${PORT}`);
-      sendnoti();
+    cleanupDuplicateReminders().catch((err) => {
+      console.error("❌ Duplicate reminder cleanup failed:", err);
     });
+
+    trainAdherenceModel()
+      .then(() => {
+        console.log("✅ One-time ML training complete!");
+      })
+      .catch((err) => {
+        console.error("❌ One-time ML training failed:", err);
+      });
   })
   .catch((err) => {
     console.log(`❌ DB connection error: ${err}`);

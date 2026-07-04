@@ -54,7 +54,7 @@ const MedicineForm = ({ onSuccess, medicine }) => {
       setCheckingMedicine(true);
       try {
         const res = await fetch(
-          `http://localhost:8000/api/v1/medicine/validate-medicine/${encodeURIComponent(
+          `http://localhost:8001/api/v1/medicine/validate-medicine/${encodeURIComponent(
             name
           )}`
         );

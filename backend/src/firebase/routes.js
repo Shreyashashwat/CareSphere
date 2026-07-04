@@ -11,7 +11,6 @@ const oauth2Client = new google.auth.OAuth2(
   "http://localhost:8000/api/v1/oauth2callback"
 );
 
-// 1️⃣ Start Google OAuth
 router.get("/auth/google", (req, res) => {
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -26,7 +25,6 @@ router.get("/auth/google", (req, res) => {
   res.redirect(url);
 });
 
-// 2️⃣ OAuth Callback
 router.get("/oauth2callback", async (req, res) => {
   try {
     const { code } = req.query;
@@ -99,7 +97,7 @@ router.post("/", async (req, res) => {
     user.fcmToken = token;
     await user.save();
 
-    console.log(`✅ FCM token saved for user ${userId}: ${token}`);
+    console.log(`FCM token saved for user ${userId}: ${token}`);
     res.status(200).json({
       success: true,
       message: "Token saved!",
@@ -128,7 +126,7 @@ router.post("/snooze/:medId", async (req, res) => {
   await med.save();
 
   res.json({
-    message: `⏱️ ${med.medicineName} snoozed for ${minutes} minutes`,
+    message: `⏱ ${med.medicineName} snoozed for ${minutes} minutes`,
     snoozedUntil: med.snoozedUntil,
   });
 });

@@ -27,7 +27,7 @@ function ChatWidget() {
   const startNewChat = async () => {
     try {
       await axios.delete(
-        `http://localhost:8000/api/v1/chatbot/session/${sessionId.current}`,
+        `http://localhost:8001/api/v1/chatbot/session/${sessionId.current}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
     } catch (e) {}
@@ -46,7 +46,7 @@ function ChatWidget() {
 
     try {
       const resp = await axios.post(
-        "http://localhost:8000/api/v1/chatbot",
+        "http://localhost:8001/api/v1/chatbot",
         {
           userId,
           message: currentInput,       
