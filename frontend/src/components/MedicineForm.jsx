@@ -10,11 +10,8 @@ const MedicineForm = ({ onSuccess, medicine }) => {
     startDate: "",
     endDate: "",
   });
-const apiBase = import.meta.env.VITE_API_URL;
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!!medicine?._id);
-  const [medicineValid, setMedicineValid] = useState(true);
-  const [checkingMedicine, setCheckingMedicine] = useState(false);
 
   useEffect(() => {
     if (medicine) {
@@ -36,35 +33,7 @@ const apiBase = import.meta.env.VITE_API_URL;
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // if (name === "medicineName") {
-    //   validateMedicineName(value);
-    // }
   };
-
-//   // Validate medicine via backend
-//   let timeout;
-//   const validateMedicineName = (name) => {
-//     clearTimeout(timeout);
-//     timeout = setTimeout(async () => {
-//       if (!name) {
-//         setMedicineValid(true);
-//         return;
-//       }
-//       setCheckingMedicine(true);
-//       try {
-//         const res = await fetch(
-//   `${apiBase}/medicine/validate-medicine/${encodeURIComponent(name)}`
-// );
-//         const data = await res.json();
-//         setMedicineValid(data.valid);
-//       } catch (err) {
-//         setMedicineValid(false);
-//       } finally {
-//         setCheckingMedicine(false);
-//       }
-//     }, 500);
-//   };
 
   const handleTimeChange = (index, value) => {
     const newTimes = [...formData.time];
@@ -89,10 +58,6 @@ const apiBase = import.meta.env.VITE_API_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // if (!medicineValid) {
-    //   alert("Please enter a valid medicine name.");
-    //   return;
-    // }
 
     setLoading(true);
 
@@ -172,12 +137,10 @@ const apiBase = import.meta.env.VITE_API_URL;
       });
       setIsEditing(false);
 
-     
       if (onSuccess) onSuccess();
 
       showSuccess(wasEditing ? "Medicine updated!" : "Medicine added!");
 
-      
       if (!wasEditing) {
         (async () => {
           try {
@@ -201,7 +164,7 @@ const apiBase = import.meta.env.VITE_API_URL;
                 await addReminder({ medicineId, time: reminderTime.toISOString(), status: "pending" });
               }
             }
-            
+
             if (onSuccess) onSuccess();
           } catch (err) {
             console.warn("⚠️ Background reminder creation error:", err.message);
@@ -241,39 +204,15 @@ const apiBase = import.meta.env.VITE_API_URL;
           <label className="mb-2 block text-sm font-bold text-gray-800">
             Medicine Name <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <input
-              type="text"
-              name="medicineName"
-              placeholder="e.g., Aspirin, Metformin, Lisinopril"
-              value={formData.medicineName}
-              onChange={handleChange}
-              className={`w-full rounded-xl border-2 px-4 py-3.5 font-medium shadow-sm transition duration-200 focus:outline-none focus:ring-4 ${
-                medicineValid
-                  ? "border-blue-200 bg-white focus:border-blue-400 focus:ring-blue-100"
-                  : "border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100"
-              }`}
-              required
-            />
-            {checkingMedicine && (
-              <div className="absolute right-3 top-3.5 flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></span>
-                <span className="text-xs font-semibold text-blue-700">Validating...</span>
-              </div>
-            )}
-          </div>
-          {!medicineValid && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all">
-              <span className="text-base">⚠️</span> 
-              <span>Medicine not found in our database</span>
-            </div>
-          )}
-          {medicineValid && formData.medicineName && !checkingMedicine && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition-all">
-              <span className="text-base">✓</span> 
-              <span>Medicine verified successfully</span>
-            </div>
-          )}
+          <input
+            type="text"
+            name="medicineName"
+            placeholder="e.g., Aspirin, Metformin, Lisinopril"
+            value={formData.medicineName}
+            onChange={handleChange}
+            className="w-full rounded-xl border-2 border-blue-200 bg-white px-4 py-3.5 font-medium shadow-sm transition duration-200 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            required
+          />
         </div>
 
         <div>
@@ -394,9 +333,9 @@ const apiBase = import.meta.env.VITE_API_URL;
 
         <button
           type="submit"
-          disabled={loading || !medicineValid}
+          disabled={loading}
           className={`group relative mt-6 w-full overflow-hidden rounded-xl py-4 font-bold shadow-lg transition-all duration-300 ${
-            loading || !medicineValid
+            loading
               ? "cursor-not-allowed bg-gray-300 text-gray-500"
               : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-blue-200 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-300"
           }`}
@@ -423,7 +362,7 @@ const apiBase = import.meta.env.VITE_API_URL;
               </>
             )}
           </span>
-          {!loading && !(!medicineValid) && (
+          {!loading && (
             <span className="absolute inset-0 -z-0 bg-gradient-to-r from-indigo-600 to-blue-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></span>
           )}
         </button>
