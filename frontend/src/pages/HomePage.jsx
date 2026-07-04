@@ -255,12 +255,12 @@ const HomePage = () => {
                 onClick={handleGoogleLogin}
                 className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 py-3 font-semibold text-gray-700 transition duration-200 hover:bg-gray-100"
               >
-                <img
+                {/* <img
                   src="https://developers.google.com/identity/images/g-logo.png"
                   className="h-5 w-5"
                   alt="Google"
                 />
-                Sign in with Google
+                Sign in with Google */}
               </button>
             </form>
           ) : (

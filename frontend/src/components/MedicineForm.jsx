@@ -37,34 +37,34 @@ const apiBase = import.meta.env.VITE_API_URL;
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "medicineName") {
-      validateMedicineName(value);
-    }
+    // if (name === "medicineName") {
+    //   validateMedicineName(value);
+    // }
   };
 
-  // Validate medicine via backend
-  let timeout;
-  const validateMedicineName = (name) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(async () => {
-      if (!name) {
-        setMedicineValid(true);
-        return;
-      }
-      setCheckingMedicine(true);
-      try {
-        const res = await fetch(
-  `${apiBase}/medicine/validate-medicine/${encodeURIComponent(name)}`
-);
-        const data = await res.json();
-        setMedicineValid(data.valid);
-      } catch (err) {
-        setMedicineValid(false);
-      } finally {
-        setCheckingMedicine(false);
-      }
-    }, 500);
-  };
+//   // Validate medicine via backend
+//   let timeout;
+//   const validateMedicineName = (name) => {
+//     clearTimeout(timeout);
+//     timeout = setTimeout(async () => {
+//       if (!name) {
+//         setMedicineValid(true);
+//         return;
+//       }
+//       setCheckingMedicine(true);
+//       try {
+//         const res = await fetch(
+//   `${apiBase}/medicine/validate-medicine/${encodeURIComponent(name)}`
+// );
+//         const data = await res.json();
+//         setMedicineValid(data.valid);
+//       } catch (err) {
+//         setMedicineValid(false);
+//       } finally {
+//         setCheckingMedicine(false);
+//       }
+//     }, 500);
+//   };
 
   const handleTimeChange = (index, value) => {
     const newTimes = [...formData.time];
@@ -89,10 +89,10 @@ const apiBase = import.meta.env.VITE_API_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!medicineValid) {
-      alert("Please enter a valid medicine name.");
-      return;
-    }
+    // if (!medicineValid) {
+    //   alert("Please enter a valid medicine name.");
+    //   return;
+    // }
 
     setLoading(true);
 
