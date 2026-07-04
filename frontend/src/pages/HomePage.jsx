@@ -60,11 +60,10 @@ const HomePage = () => {
   const handleRegisterChange = (e) =>
     setRegisterData({ ...registerData, [e.target.name]: e.target.value });
 
-  const handleGoogleLogin = () => {
-    // Redirect directly to backend Google OAuth
-    window.location.href = "http://localhost:8001/api/v1/auth/google";
-  };
-
+ const handleGoogleLogin = () => {
+  const apiOrigin = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "");
+  window.location.href = `${apiOrigin}/api/v1/auth/google`;
+};
   // ------------------- Login Logic -------------------
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
